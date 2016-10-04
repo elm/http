@@ -241,9 +241,27 @@ request =
 -- HEADERS
 
 
+{-| An HTTP header for configuring requests. See a bunch of common headers
+[here][].
+
+[here]: https://en.wikipedia.org/wiki/List_of_HTTP_header_fields
+-}
 type alias Header = Http.Internal.Header
 
 
+{-| Create a `Header`.
+
+    header "If-Modified-Since" "Sat 29 Oct 1994 19:43:31 GMT"
+    header "Max-Forwards" "10"
+    header "X-Requested-With" "XMLHttpRequest"
+
+**Note:** In the future, we may split this out into an `Http.Headers` module
+and provide helpers for cases that are common on the client-side. If this
+sounds nice to you, open an issue [here][] describing the helper you want and
+why you need it.
+
+[here]: https://github.com/elm-lang/http/issues
+-}
 header : String -> String -> Header
 header =
   Http.Internal.Header
