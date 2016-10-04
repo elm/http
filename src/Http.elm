@@ -344,20 +344,32 @@ stringPart =
 -- RESPONSES
 
 
+{-| Logic for interpreting a response body.
+-}
 type alias Expect a =
   Http.Internal.Expect a
 
 
+{-| Expect the response body to be a `String`.
+-}
 expectString : Expect String
 expectString =
   expectStringResponse (\response -> Ok response.body)
 
 
+{-| Expect the response body to be JSON. You provide a `Decoder` to turn that
+JSON into an Elm value. If the body cannot be parsed as JSON or if the JSON
+does not match the decoder, the request will resolve to a `BadPayload` error.
+-}
 expectJson : Decode.Decoder a -> Expect a
 expectJson decoder =
   expectStringResponse (\response -> Decode.decodeString decoder response.body)
 
 
+{-| Maybe you want the whole `Response`: status code, headers, body, etc. This
+lets you get all of that information. From there you can use functions like
+`Json.Decode.decodeString` to interpret it as JSON or whatever else you want.
+-}
 expectStringResponse : (Response String -> Result String a) -> Expect a
 expectStringResponse =
   Native.Http.expectStringResponse
