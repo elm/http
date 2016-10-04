@@ -241,11 +241,9 @@ request =
 -- HEADERS
 
 
-{-|-}
 type alias Header = Http.Internal.Header
 
 
-{-|-}
 header : String -> String -> Header
 header =
   Http.Internal.Header
@@ -328,24 +326,20 @@ stringPart =
 -- RESPONSES
 
 
-{-|-}
 type alias Expect a =
   Http.Internal.Expect a
 
 
-{-|-}
 expectString : Expect String
 expectString =
   expectStringResponse (\response -> Ok response.body)
 
 
-{-|-}
 expectJson : Decode.Decoder a -> Expect a
 expectJson decoder =
   expectStringResponse (\response -> Decode.decodeString decoder response.body)
 
 
-{-|-}
 expectStringResponse : (Response String -> Result String a) -> Expect a
 expectStringResponse =
   Native.Http.expectStringResponse
