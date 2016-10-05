@@ -1,12 +1,18 @@
 effect module Http.Progress where { subscription = MySub } exposing
   ( Progress(..)
-  , progress
-  , Tracker
-  , tracker
   , track
-  , Msg
-  , update
   )
+
+{-| Track the progress of an HTTP request. This can be useful if you are
+requesting a large amount of data and want to show the user a progress bar
+or something.
+
+**Note:** If you stop tracking progress, you cancel the request.
+
+# Progress
+@docs Progress, track
+
+-}
 
 
 import Dict
@@ -21,6 +27,19 @@ import Process
 -- PROGRESS
 
 
+{-| The progress of an HTTP request.
+
+You start with `None`. As data starts to come in, you will see `Some`. The
+`bytesExpected` field will match the `Content-Length` header, indicating how
+long the response body is in bytes (8-bits). The `bytes` field indicates how
+many bytes have been loaded so far, so if you want progress as a percentage,
+you would say:
+
+    Some { bytes, bytesExpected } ->
+      toFloat bytes / toFloat bytesExpected
+
+You will end up with `Fail` or `Done` depending on the success of the request.
+-}
 type Progress data
   = None
   | Some { bytes : Int, bytesExpected : Int}
@@ -29,50 +48,21 @@ type Progress data
 
 
 
--- TRACKER
-
-
-type Tracker data =
-  Tracker String (Progress data)
-
-
-tracker : String -> Tracker data
-tracker id =
-  Tracker id None
-
-
-progress : Tracker data -> Progress data
-progress (Tracker _ prog) =
-  prog
-
-
-
--- UPDATE TRACKER
-
-
-type Msg data =
-  Msg String (Progress data)
-
-
-update : Msg data -> Tracker data -> Tracker data
-update (Msg msgId progress) (Tracker id _ as tracker) =
-  if msgId /= id then
-    tracker
-
-  else
-    Tracker id progress
-
-
-
 -- TRACK
 
 
-track : (Msg data -> msg) -> Request data -> Tracker data -> Sub msg
-track toMessage (Request request) (Tracker id _) =
+{-| Create a subscription that tracks the progress of an HTTP request.
+
+Definitely check out [this example][ex] to learn how to use it!
+
+[ex]: http://elm-lang.org/examples/http-progress
+-}
+track : String -> (Progress data -> msg) -> Http.Request data -> Sub msg
+track id toMessage (Request request) =
   subscription <| Track id <|
-    { request = Http.Internal.map (Done >> Msg id >> toMessage) request
-    , toProgress = Some >> Msg id >> toMessage
-    , toError = Fail >> Msg id >> toMessage
+    { request = Http.Internal.map (Done >> toMessage) request
+    , toProgress = Some >> toMessage
+    , toError = Fail >> toMessage
     }
 
 
