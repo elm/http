@@ -9,7 +9,7 @@ module Http exposing
   , encodeUri, decodeUri, toTask
   )
 
-{-|
+{-| Create and send HTTP requests.
 
 # Send Requests
 @docs Request, send, Error
