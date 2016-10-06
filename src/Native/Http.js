@@ -102,7 +102,7 @@ function send(xhr, body)
 			xhr.send(body._1);
 			return;
 
-		case 'FormDataBody'
+		case 'FormDataBody':
 			xhr.setRequestHeader('Content-Type', 'multipart/form-data');
 			xhr.send(body._0);
 			return;
