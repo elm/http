@@ -1,4 +1,4 @@
-var _elm_lang$core$Native_Http = function() {
+var _elm_lang$http$Native_Http = function() {
 
 
 // ENCODING AND DECODING
@@ -145,7 +145,7 @@ function handleResponse(xhr, responseToResult)
 function toResponse(xhr)
 {
 	return {
-		status: { code: xhr.status, message: xhr.statusText }
+		status: { code: xhr.status, message: xhr.statusText },
 		headers: parseHeaders(xhr.getAllResponseHeaders()),
 		url: xhr.responseURL,
 		body: xhr.response
