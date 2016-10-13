@@ -42,4 +42,4 @@ type Header = Header String String
 
 map : (a -> b) -> RawRequest a -> RawRequest b
 map func request =
-  { request | expect = Native.Http.mapExpect request.expect }
+  { request | expect = Native.Http.mapExpect func request.expect }
