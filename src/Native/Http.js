@@ -195,6 +195,14 @@ function expectStringResponse(responseToResult)
 	};
 }
 
+function mapExpect(func, expect)
+{
+	return {
+		responseType: expect.responseType,
+		responseToResult: A2(_elm_lang$core$Result$map, func, expect.responseToResult)
+	};
+}
+
 
 // BODY
 
@@ -215,6 +223,7 @@ function multipart(parts)
 return {
 	toTask: F2(toTask),
 	expectStringResponse: expectStringResponse,
+	mapExpect: F2(mapExpect),
 	multipart: multipart,
 	encodeUri: encodeUri,
 	decodeUri: decodeUri
