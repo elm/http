@@ -1,5 +1,5 @@
 {
-    "version": "1.0.0",
+    "version": "1.0.1",
     "summary": "Make HTTP requests (download progress, rate-limit, debounce, throttle)",
     "repository": "https://github.com/elm-lang/http.git",
     "license": "BSD3",
