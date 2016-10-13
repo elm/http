@@ -198,9 +198,9 @@ function mapExpect(func, expect)
 {
 	return {
 		responseType: expect.responseType,
-		responseToResult: function(x) {
-			var y = expect.responseToResult(x);
-			return A2(_elm_lang$core$Result$map, func, y);
+		responseToResult: function(response) {
+			var convertedResponse = expect.responseToResult(response);
+			return A2(_elm_lang$core$Result$map, func, convertedResponse);
 		}
 	};
 }
