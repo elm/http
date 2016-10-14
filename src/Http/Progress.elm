@@ -155,7 +155,7 @@ spawnRequests router trackedRequests state =
 
 toTask : Router msg Never -> TrackedRequest msg -> Task Never ()
 toTask router { request, toProgress, toError } =
-  Native.Http.toTask request (Just toProgress)
+  Native.Http.toTask request (Just (Platform.sendToApp router << toProgress))
     |> Task.andThen (Platform.sendToApp router)
     |> Task.onError (Platform.sendToApp router << toError)
 
