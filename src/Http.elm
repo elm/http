@@ -1,5 +1,5 @@
 module Http exposing
-  ( Request, send, Error
+  ( Request, send, Error(..)
   , getString, get
   , post
   , request
