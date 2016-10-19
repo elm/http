@@ -8,8 +8,7 @@
     ],
     "exposed-modules": [
         "Http",
-        "Http.Progress",
-        "Http.RateLimit"
+        "Http.Progress"
     ],
     "native-modules": true,
     "dependencies": {
