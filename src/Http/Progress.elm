@@ -7,6 +7,11 @@ effect module Http.Progress where { subscription = MySub } exposing
 requesting a large amount of data and want to show the user a progress bar
 or something.
 
+Here is an example usage: [demo][] and [code][].
+
+[demo]: https://hirafuji.com.br/elm/http-progress-example/
+[code]: https://gist.github.com/pablohirafuji/fa373d07c42016756d5bca28962008c4
+
 **Note:** If you stop tracking progress, you cancel the request.
 
 # Progress
@@ -53,9 +58,10 @@ type Progress data
 
 {-| Create a subscription that tracks the progress of an HTTP request.
 
-Definitely check out [this example][ex] to learn how to use it!
+See it in action in this example: [demo][] and [code][].
 
-[ex]: http://elm-lang.org/examples/http-progress
+[demo]: https://hirafuji.com.br/elm/http-progress-example/
+[code]: https://gist.github.com/pablohirafuji/fa373d07c42016756d5bca28962008c4
 -}
 track : String -> (Progress data -> msg) -> Http.Request data -> Sub msg
 track id toMessage (Request request) =
