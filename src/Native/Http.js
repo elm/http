@@ -85,7 +85,12 @@ function configureRequest(xhr, request)
 
 	A2(_elm_lang$core$List$map, setHeader, request.headers);
 	xhr.responseType = request.expect.responseType;
-	xhr.timeout = request.timeout;
+
+	if (request.timeout.ctor === 'Just')
+	{
+		xhr.timeout = request.timeout._0;
+	}
+
 	xhr.withCredentials = request.withCredentials;
 }
 
