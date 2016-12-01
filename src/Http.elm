@@ -65,7 +65,7 @@ type alias Request a =
 
     type Msg = Click | NewBook (Result Http.Error String)
 
-    update : Msg -> Model -> Model
+    update : Msg -> Model -> ( Model, Cmd Msg )
     update msg model =
       case msg of
         Click ->
