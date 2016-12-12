@@ -6,7 +6,7 @@ module Http exposing
   , Header, header
   , Body, emptyBody, jsonBody, stringBody, multipartBody, Part, stringPart
   , Expect, expectString, expectJson, expectStringResponse, Response
-  , encodeUri, decodeUri, toTask
+  , url, encodeUri, decodeUri, toTask
   )
 
 {-| Create and send HTTP requests.
@@ -388,6 +388,33 @@ type alias Response body =
 
 -- LOW-LEVEL
 
+{-| Create a properly encoded URL with a [query string][qs]. The first argument is
+the portion of the URL before the query string, which is assumed to be
+properly encoded already. The second argument is a list of all the
+key/value pairs needed for the query string. Both the keys and values
+will be appropriately encoded, so they can contain spaces, ampersands, etc.
+[qs]: http://en.wikipedia.org/wiki/Query_string
+    url "http://example.com/users" [ ("name", "john doe"), ("age", "30") ]
+    -- http://example.com/users?name=john+doe&age=30
+-}
+url : String -> List (String,String) -> String
+url baseUrl args =
+  case args of
+    [] ->
+        baseUrl
+
+    _ ->
+        baseUrl ++ "?" ++ String.join "&" (List.map queryPair args)
+
+
+queryPair : (String,String) -> String
+queryPair (key,value) =
+  queryEscape key ++ "=" ++ queryEscape value
+
+
+queryEscape : String -> String
+queryEscape string =
+  String.join "+" (String.split "%20" (encodeUri string))
 
 {-| Use this to escape query parameters. Converts characters like `/` to `%2F`
 so that it does not clash with normal URL
