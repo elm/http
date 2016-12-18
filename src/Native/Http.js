@@ -57,6 +57,19 @@ function toTask(request, maybeProgress)
 	});
 }
 
+function handleProgress(event, maybeProgress)
+{
+	if (!event.lengthComputable)
+	{
+		return;
+	}
+
+	_elm_lang$core$Native_Scheduler.rawSpawn(maybeProgress._0({
+		bytes: event.loaded,
+		bytesExpected: event.total
+	}));
+}
+
 function configureProgress(xhr, maybeProgress)
 {
 	if (maybeProgress.ctor === 'Nothing')
@@ -64,15 +77,14 @@ function configureProgress(xhr, maybeProgress)
 		return;
 	}
 
+	if (xhr.upload) {
+		xhr.upload.addEventListener('progress', function(event) {
+			handleProgress(event, maybeProgress);
+		});
+	}
+
 	xhr.addEventListener('progress', function(event) {
-		if (!event.lengthComputable)
-		{
-			return;
-		}
-		_elm_lang$core$Native_Scheduler.rawSpawn(maybeProgress._0({
-			bytes: event.loaded,
-			bytesExpected: event.total
-		}));
+		handleProgress(event, maybeProgress);
 	});
 }
 
