@@ -7,6 +7,7 @@ module Http exposing
   , Body, emptyBody, jsonBody, stringBody, multipartBody, Part, stringPart
   , Expect, expectString, expectJson, expectStringResponse, Response
   , encodeUri, decodeUri, toTask
+  , put, delete
   )
 
 {-| Create and send HTTP requests.
@@ -19,6 +20,12 @@ module Http exposing
 
 # POST
 @docs post
+
+# PUT
+@docs put
+
+# DELETE
+@docs delete
 
 # Custom Requests
 @docs request
@@ -204,6 +211,84 @@ post url body decoder =
     }
 
 
+
+{-| Create a `PUT` request. 
+For example, if we want to send a PUT with some data in the
+request body, it would be like this:
+
+    import Http
+    import Json.Encode exposing (Value, object, int, string)
+
+    type alias Book =
+      { id : Int
+      , title : String
+      , author : String
+      }
+
+    book =
+      { id = 1
+      , title = "Atlas Shrugged"
+      , author = "Ayn Rand"
+      }
+
+    bookEncoder : Book -> Value
+    bookEncoder book =
+      object
+        [ ( "id", int book.id )
+        , ( "title", string book.name )
+        , ( "author", string book.author )
+        ]
+
+    body : Value
+    body =
+        bookEncoder book
+
+    putBooks : Http.Request ()
+    putBooks =
+      Http.put "https://example.com/books/1" (Http.jsonBody body)
+
+See [`jsonBody`](#jsonBody) to learn how to have a more interesting request
+body. And check out [this section][here] of the guide to learn more about
+JSON encoders.
+
+[here]: https://guide.elm-lang.org/interop/json.html
+
+-}
+put : String -> Body -> Request ()
+put url body =
+   request
+     { method = "PUT"
+     , headers = []
+     , url = url
+     , body = body
+     , expect = expectStringResponse (\_ -> Ok ())
+     , timeout = Nothing
+     , withCredentials = False
+     }
+
+
+{-| Create a `DELETE` request. 
+For example, if we want to send a DELETE it would be like this:
+
+    import Http
+
+    deleteBooks : Http.Request ()
+    deleteBooks =
+      Http.delete "https://example.com/books/1" 
+
+-}
+delete : String -> Request ()
+delete url =
+   request
+     { method = "DELETE"
+     , headers = []
+     , url = url
+     , body = emptyBody
+     , expect = expectStringResponse (\_ -> Ok ())
+     , timeout = Nothing
+     , withCredentials = False
+     }
+ 
 
 -- CUSTOM REQUESTS
 
