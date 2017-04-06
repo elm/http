@@ -1,14 +1,13 @@
-var _elm_lang$http$Native_Http = function() {
 
 
 // ENCODING AND DECODING
 
-function encodeUri(string)
+function _Http_encodeUri(string)
 {
 	return encodeURIComponent(string);
 }
 
-function decodeUri(string)
+function _Http_decodeUri(string)
 {
 	try
 	{
@@ -23,13 +22,13 @@ function decodeUri(string)
 
 // SEND REQUEST
 
-function toTask(request, maybeProgress)
+var _Http_toTask = F2(function(request, maybeProgress)
 {
 	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
 	{
 		var xhr = new XMLHttpRequest();
 
-		configureProgress(xhr, maybeProgress);
+		_Http_configureProgress(xhr, maybeProgress);
 
 		xhr.addEventListener('error', function() {
 			callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'NetworkError' }));
@@ -38,7 +37,7 @@ function toTask(request, maybeProgress)
 			callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Timeout' }));
 		});
 		xhr.addEventListener('load', function() {
-			callback(handleResponse(xhr, request.expect.responseToResult));
+			callback(_Http_handleResponse(xhr, request.expect.responseToResult));
 		});
 
 		try
@@ -50,14 +49,14 @@ function toTask(request, maybeProgress)
 			return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'BadUrl', _0: request.url }));
 		}
 
-		configureRequest(xhr, request);
-		send(xhr, request.body);
+		_Http_configureRequest(xhr, request);
+		_Http_send(xhr, request.body);
 
 		return function() { xhr.abort(); };
 	});
-}
+});
 
-function configureProgress(xhr, maybeProgress)
+function _Http_configureProgress(xhr, maybeProgress)
 {
 	if (maybeProgress.ctor === 'Nothing')
 	{
@@ -76,7 +75,7 @@ function configureProgress(xhr, maybeProgress)
 	});
 }
 
-function configureRequest(xhr, request)
+function _Http_configureRequest(xhr, request)
 {
 	function setHeader(pair)
 	{
@@ -93,7 +92,7 @@ function configureRequest(xhr, request)
 	}
 }
 
-function send(xhr, body)
+function _Http_send(xhr, body)
 {
 	switch (body.ctor)
 	{
@@ -115,9 +114,9 @@ function send(xhr, body)
 
 // RESPONSES
 
-function handleResponse(xhr, responseToResult)
+function _Http_handleResponse(xhr, responseToResult)
 {
-	var response = toResponse(xhr);
+	var response = _Http_toResponse(xhr);
 
 	if (xhr.status < 200 || 300 <= xhr.status)
 	{
@@ -145,17 +144,17 @@ function handleResponse(xhr, responseToResult)
 	}
 }
 
-function toResponse(xhr)
+function _Http_toResponse(xhr)
 {
 	return {
 		status: { code: xhr.status, message: xhr.statusText },
-		headers: parseHeaders(xhr.getAllResponseHeaders()),
+		headers: _Http_parseHeaders(xhr.getAllResponseHeaders()),
 		url: xhr.responseURL,
 		body: xhr.response
 	};
 }
 
-function parseHeaders(rawHeaders)
+function _Http_parseHeaders(rawHeaders)
 {
 	var headers = _elm_lang$core$Dict$empty;
 
@@ -190,7 +189,7 @@ function parseHeaders(rawHeaders)
 
 // EXPECTORS
 
-function expectStringResponse(responseToResult)
+function _Http_expectStringResponse(responseToResult)
 {
 	return {
 		responseType: 'text',
@@ -198,7 +197,7 @@ function expectStringResponse(responseToResult)
 	};
 }
 
-function mapExpect(func, expect)
+var _Http_mapExpect = F2(function(func, expect)
 {
 	return {
 		responseType: expect.responseType,
@@ -207,12 +206,12 @@ function mapExpect(func, expect)
 			return A2(_elm_lang$core$Result$map, func, convertedResponse);
 		}
 	};
-}
+});
 
 
 // BODY
 
-function multipart(parts)
+function _Http_multipart(parts)
 {
 	var formData = new FormData();
 
@@ -225,14 +224,3 @@ function multipart(parts)
 
 	return { ctor: 'FormDataBody', _0: formData };
 }
-
-return {
-	toTask: F2(toTask),
-	expectStringResponse: expectStringResponse,
-	mapExpect: F2(mapExpect),
-	multipart: multipart,
-	encodeUri: encodeUri,
-	decodeUri: decodeUri
-};
-
-}();
