@@ -42,7 +42,7 @@ import Http.Internal
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Maybe exposing (Maybe(..))
-import Native.Http
+import Elm.Kernel.Http
 import Platform.Cmd as Cmd exposing (Cmd)
 import Result exposing (Result(..))
 import Task exposing (Task)
@@ -92,7 +92,7 @@ to chain together a bunch of requests (or any other tasks) in a single command.
 -}
 toTask : Request a -> Task Error a
 toTask (Http.Internal.Request request) =
-  Native.Http.toTask request Nothing
+  Elm.Kernel.Http.toTask request Nothing
 
 
 {-| A `Request` can fail in a couple ways:
@@ -317,7 +317,7 @@ stringBody =
 -}
 multipartBody : List Part -> Body
 multipartBody =
-  Native.Http.multipart
+  Elm.Kernel.Http.multipart
 
 
 {-| Contents of a multi-part body. Right now it only supports strings, but we
@@ -372,7 +372,7 @@ lets you get all of that information. From there you can use functions like
 -}
 expectStringResponse : (Response String -> Result String a) -> Expect a
 expectStringResponse =
-  Native.Http.expectStringResponse
+  Elm.Kernel.Http.expectStringResponse
 
 
 {-| The response from a `Request`.
@@ -396,7 +396,7 @@ It work just like `encodeURIComponent` in JavaScript.
 -}
 encodeUri : String -> String
 encodeUri =
-  Native.Http.encodeUri
+  Elm.Kernel.Http.encodeUri
 
 
 {-| Use this to unescape query parameters. It converts things like `%2F` to
@@ -407,5 +407,5 @@ It works just like `decodeURIComponent` in JavaScript.
 -}
 decodeUri : String -> Maybe String
 decodeUri =
-  Native.Http.decodeUri
+  Elm.Kernel.Http.decodeUri
 

@@ -8,7 +8,7 @@ module Http.Internal exposing
   )
 
 
-import Native.Http
+import Elm.Kernel.Http
 import Time exposing (Time)
 
 
@@ -42,4 +42,4 @@ type Header = Header String String
 
 map : (a -> b) -> RawRequest a -> RawRequest b
 map func request =
-  { request | expect = Native.Http.mapExpect func request.expect }
+  { request | expect = Elm.Kernel.Http.mapExpect func request.expect }
