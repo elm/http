@@ -77,12 +77,14 @@ function _Http_configureProgress(xhr, maybeProgress)
 
 function _Http_configureRequest(xhr, request)
 {
-	function setHeader(pair)
+	var headers = request.headers;
+	while (headers.ctor !== '[]')
 	{
+		var pair = headers._0;
 		xhr.setRequestHeader(pair._0, pair._1);
+		headers = headers._1;
 	}
 
-	A2(_elm_lang$core$List$map, setHeader, request.headers);
 	xhr.responseType = request.expect.responseType;
 	xhr.withCredentials = request.withCredentials;
 
