@@ -1,4 +1,9 @@
+/*
 
+import Elm.Kernel.Scheduler exposing (binding, fail, rawSpawn, succeed)
+import Maybe exposing (Maybe(Just, Nothing))
+
+*/
 
 // ENCODING AND DECODING
 
@@ -11,11 +16,11 @@ function _Http_decodeUri(string)
 {
 	try
 	{
-		return _elm_lang$core$Maybe$Just(decodeURIComponent(string));
+		return __Maybe_Just(decodeURIComponent(string));
 	}
 	catch(e)
 	{
-		return _elm_lang$core$Maybe$Nothing;
+		return __Maybe_Nothing;
 	}
 }
 
@@ -24,17 +29,17 @@ function _Http_decodeUri(string)
 
 var _Http_toTask = F2(function(request, maybeProgress)
 {
-	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	return __Scheduler_binding(function(callback)
 	{
 		var xhr = new XMLHttpRequest();
 
 		_Http_configureProgress(xhr, maybeProgress);
 
 		xhr.addEventListener('error', function() {
-			callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'NetworkError' }));
+			callback(__Scheduler_fail({ ctor: 'NetworkError' }));
 		});
 		xhr.addEventListener('timeout', function() {
-			callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Timeout' }));
+			callback(__Scheduler_fail({ ctor: 'Timeout' }));
 		});
 		xhr.addEventListener('load', function() {
 			callback(_Http_handleResponse(xhr, request.expect.responseToResult));
@@ -46,7 +51,7 @@ var _Http_toTask = F2(function(request, maybeProgress)
 		}
 		catch (e)
 		{
-			return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'BadUrl', _0: request.url }));
+			return callback(__Scheduler_fail({ ctor: 'BadUrl', _0: request.url }));
 		}
 
 		_Http_configureRequest(xhr, request);
@@ -68,7 +73,7 @@ function _Http_configureProgress(xhr, maybeProgress)
 		{
 			return;
 		}
-		_elm_lang$core$Native_Scheduler.rawSpawn(maybeProgress._0({
+		__Scheduler_rawSpawn(maybeProgress._0({
 			bytes: event.loaded,
 			bytesExpected: event.total
 		}));
@@ -123,7 +128,7 @@ function _Http_handleResponse(xhr, responseToResult)
 	if (xhr.status < 200 || 300 <= xhr.status)
 	{
 		response.body = xhr.responseText;
-		return _elm_lang$core$Native_Scheduler.fail({
+		return __Scheduler_fail({
 			ctor: 'BadStatus',
 			_0: response
 		});
@@ -133,12 +138,12 @@ function _Http_handleResponse(xhr, responseToResult)
 
 	if (result.ctor === 'Ok')
 	{
-		return _elm_lang$core$Native_Scheduler.succeed(result._0);
+		return __Scheduler_succeed(result._0);
 	}
 	else
 	{
 		response.body = xhr.responseText;
-		return _elm_lang$core$Native_Scheduler.fail({
+		return __Scheduler_fail({
 			ctor: 'BadPayload',
 			_0: result._0,
 			_1: response
@@ -178,9 +183,9 @@ function _Http_parseHeaders(rawHeaders)
 			headers = A3(_elm_lang$core$Dict$update, key, function(oldValue) {
 				if (oldValue.ctor === 'Just')
 				{
-					return _elm_lang$core$Maybe$Just(value + ', ' + oldValue._0);
+					return __Maybe_Just(value + ', ' + oldValue._0);
 				}
-				return _elm_lang$core$Maybe$Just(value);
+				return __Maybe_Just(value);
 			}, headers);
 		}
 	}
