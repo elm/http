@@ -1,0 +1,16 @@
+{
+	"type": "package",
+	"name": "elm-lang/http",
+	"summary": "Make HTTP requests",
+	"license": "BSD-3-Clause",
+	"version": "1.0.0",
+	"exposed-modules": [
+		"Http"
+	],
+	"elm-version": "0.18.0 <= v < 0.19.0",
+	"dependencies": {
+		"elm-lang/core": "5.0.0 <= v < 6.0.0"
+	},
+	"test-dependencies": {
+	}
+}
