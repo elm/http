@@ -1,7 +1,9 @@
 /*
 
+import Dict exposing (empty, update)
 import Elm.Kernel.Scheduler exposing (binding, fail, rawSpawn, succeed)
 import Maybe exposing (Maybe(Just, Nothing))
+import Result exposing (map)
 
 */
 
@@ -36,26 +38,26 @@ var _Http_toTask = F2(function(request, maybeProgress)
 		_Http_configureProgress(xhr, maybeProgress);
 
 		xhr.addEventListener('error', function() {
-			callback(__Scheduler_fail({ ctor: 'NetworkError' }));
+			callback(__Scheduler_fail({ $: 'NetworkError' }));
 		});
 		xhr.addEventListener('timeout', function() {
-			callback(__Scheduler_fail({ ctor: 'Timeout' }));
+			callback(__Scheduler_fail({ $: 'Timeout' }));
 		});
 		xhr.addEventListener('load', function() {
-			callback(_Http_handleResponse(xhr, request.expect.responseToResult));
+			callback(_Http_handleResponse(xhr, request.__$expect.__responseToResult));
 		});
 
 		try
 		{
-			xhr.open(request.method, request.url, true);
+			xhr.open(request.__$method, request.__$url, true);
 		}
 		catch (e)
 		{
-			return callback(__Scheduler_fail({ ctor: 'BadUrl', _0: request.url }));
+			return callback(__Scheduler_fail({ $: 'BadUrl', a: request.__$url }));
 		}
 
 		_Http_configureRequest(xhr, request);
-		_Http_send(xhr, request.body);
+		_Http_send(xhr, request.__$body);
 
 		return function() { xhr.abort(); };
 	});
@@ -63,7 +65,7 @@ var _Http_toTask = F2(function(request, maybeProgress)
 
 function _Http_configureProgress(xhr, maybeProgress)
 {
-	if (maybeProgress.ctor === 'Nothing')
+	if (maybeProgress.$ === 'Nothing')
 	{
 		return;
 	}
@@ -73,47 +75,47 @@ function _Http_configureProgress(xhr, maybeProgress)
 		{
 			return;
 		}
-		__Scheduler_rawSpawn(maybeProgress._0({
-			bytes: event.loaded,
-			bytesExpected: event.total
+		__Scheduler_rawSpawn(maybeProgress.a({
+			__$bytes: event.loaded,
+			__$bytesExpected: event.total
 		}));
 	});
 }
 
 function _Http_configureRequest(xhr, request)
 {
-	var headers = request.headers;
-	while (headers.ctor !== '[]')
+	var headers = request.__$headers;
+	while (headers.$ !== '[]')
 	{
-		var pair = headers._0;
-		xhr.setRequestHeader(pair._0, pair._1);
-		headers = headers._1;
+		var pair = headers.a;
+		xhr.setRequestHeader(pair.a, pair.b);
+		headers = headers.b;
 	}
 
-	xhr.responseType = request.expect.responseType;
-	xhr.withCredentials = request.withCredentials;
+	xhr.responseType = request.__$expect.__responseType;
+	xhr.withCredentials = request.__$withCredentials;
 
-	if (request.timeout.ctor === 'Just')
+	if (request.__$timeout.$ === 'Just')
 	{
-		xhr.timeout = request.timeout._0;
+		xhr.timeout = request.__$timeout.a;
 	}
 }
 
 function _Http_send(xhr, body)
 {
-	switch (body.ctor)
+	switch (body.$)
 	{
 		case 'EmptyBody':
 			xhr.send();
 			return;
 
 		case 'StringBody':
-			xhr.setRequestHeader('Content-Type', body._0);
-			xhr.send(body._1);
+			xhr.setRequestHeader('Content-Type', body.a);
+			xhr.send(body.b);
 			return;
 
 		case 'FormDataBody':
-			xhr.send(body._0);
+			xhr.send(body.a);
 			return;
 	}
 }
@@ -129,24 +131,24 @@ function _Http_handleResponse(xhr, responseToResult)
 	{
 		response.body = xhr.responseText;
 		return __Scheduler_fail({
-			ctor: 'BadStatus',
-			_0: response
+			$: 'BadStatus',
+			a: response
 		});
 	}
 
 	var result = responseToResult(response);
 
-	if (result.ctor === 'Ok')
+	if (result.$ === 'Ok')
 	{
-		return __Scheduler_succeed(result._0);
+		return __Scheduler_succeed(result.a);
 	}
 	else
 	{
 		response.body = xhr.responseText;
 		return __Scheduler_fail({
-			ctor: 'BadPayload',
-			_0: result._0,
-			_1: response
+			$: 'BadPayload',
+			a: result.a,
+			b: response
 		});
 	}
 }
@@ -154,16 +156,16 @@ function _Http_handleResponse(xhr, responseToResult)
 function _Http_toResponse(xhr)
 {
 	return {
-		status: { code: xhr.status, message: xhr.statusText },
-		headers: _Http_parseHeaders(xhr.getAllResponseHeaders()),
-		url: xhr.responseURL,
-		body: xhr.response
+		__$url: xhr.responseURL,
+		__$status: { __$code: xhr.status, __$message: xhr.statusText },
+		__$headers: _Http_parseHeaders(xhr.getAllResponseHeaders()),
+		__$body: xhr.response
 	};
 }
 
 function _Http_parseHeaders(rawHeaders)
 {
-	var headers = _elm_lang$core$Dict$empty;
+	var headers = __Dict_empty;
 
 	if (!rawHeaders)
 	{
@@ -180,10 +182,10 @@ function _Http_parseHeaders(rawHeaders)
 			var key = headerPair.substring(0, index);
 			var value = headerPair.substring(index + 2);
 
-			headers = A3(_elm_lang$core$Dict$update, key, function(oldValue) {
-				if (oldValue.ctor === 'Just')
+			headers = A3(__Dict_update, key, function(oldValue) {
+				if (oldValue.$ === 'Just')
 				{
-					return __Maybe_Just(value + ', ' + oldValue._0);
+					return __Maybe_Just(value + ', ' + oldValue.a);
 				}
 				return __Maybe_Just(value);
 			}, headers);
@@ -199,18 +201,20 @@ function _Http_parseHeaders(rawHeaders)
 function _Http_expectStringResponse(responseToResult)
 {
 	return {
-		responseType: 'text',
-		responseToResult: responseToResult
+		$: __0_EXPECT,
+		__responseType: 'text',
+		__responseToResult: responseToResult
 	};
 }
 
 var _Http_mapExpect = F2(function(func, expect)
 {
 	return {
-		responseType: expect.responseType,
-		responseToResult: function(response) {
-			var convertedResponse = expect.responseToResult(response);
-			return A2(_elm_lang$core$Result$map, func, convertedResponse);
+		$: __0_EXPECT,
+		__responseType: expect.__responseType,
+		__responseToResult: function(response) {
+			var convertedResponse = expect.__responseToResult(response);
+			return A2(__Result_map, func, convertedResponse);
 		}
 	};
 });
@@ -222,12 +226,12 @@ function _Http_multipart(parts)
 {
 	var formData = new FormData();
 
-	while (parts.ctor !== '[]')
+	while (parts.$ !== '[]')
 	{
-		var part = parts._0;
-		formData.append(part._0, part._1);
-		parts = parts._1;
+		var part = parts.a;
+		formData.append(part.a, part.b);
+		parts = parts.b;
 	}
 
-	return { ctor: 'FormDataBody', _0: formData };
+	return { $: 'FormDataBody', a: formData };
 }
