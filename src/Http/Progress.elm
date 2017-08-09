@@ -21,6 +21,7 @@ Here is an example usage: [demo][] and [code][].
 
 
 import Dict
+import Elm.Kernel.Http
 import Http
 import Http.Internal exposing ( Request(Request) )
 import Task exposing (Task)
@@ -161,7 +162,7 @@ spawnRequests router trackedRequests state =
 
 toTask : Router msg Never -> TrackedRequest msg -> Task Never ()
 toTask router { request, toProgress, toError } =
-  Native.Http.toTask request (Just (Platform.sendToApp router << toProgress))
+  Elm.Kernel.Http.toTask request (Just (Platform.sendToApp router << toProgress))
     |> Task.andThen (Platform.sendToApp router)
     |> Task.onError (Platform.sendToApp router << toError)
 
