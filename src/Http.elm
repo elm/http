@@ -363,7 +363,14 @@ does not match the decoder, the request will resolve to a `BadPayload` error.
 -}
 expectJson : Decode.Decoder a -> Expect a
 expectJson decoder =
-  expectStringResponse (\response -> Decode.decodeString decoder response.body)
+  expectStringResponse <|
+    \response ->
+      case Decode.decodeString decoder response.body of
+        Err decodeError ->
+          Err (Decode.errorToString decodeError)
+
+        Ok value ->
+          Ok value
 
 
 {-| Maybe you want the whole `Response`: status code, headers, body, etc. This
