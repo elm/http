@@ -6,10 +6,14 @@ module Http exposing
   , Header, header
   , Body, emptyBody, jsonBody, stringBody, multipartBody, Part, stringPart
   , Expect, expectString, expectJson, expectStringResponse, Response
-  , encodeUri, decodeUri, toTask
+  , toTask
   )
 
 {-| Create and send HTTP requests.
+
+Check out the [`elm-lang/url`][url] package for help creating URLs.
+
+[url]: http://package.elm-lang.org/packages/elm-lang/url/latest
 
 # Send Requests
 @docs Request, send, Error
@@ -33,7 +37,7 @@ module Http exposing
 @docs Expect, expectString, expectJson, expectStringResponse, Response
 
 # Low-Level
-@docs encodeUri, decodeUri, toTask
+@docs toTask
 
 -}
 
@@ -128,6 +132,10 @@ type Error
     getWarAndPeace : Http.Request String
     getWarAndPeace =
       Http.getString "https://example.com/books/war-and-peace"
+
+**Note:** Use [`elm-lang/url`][url] to build URLs.
+
+[url]: http://package.elm-lang.org/packages/elm-lang/url/latest
 -}
 getString : String -> Request String
 getString url =
@@ -155,6 +163,10 @@ some Elm value.
 You can learn more about how JSON decoders work [here][] in the guide.
 
 [here]: https://guide.elm-lang.org/interop/json.html
+
+**Note:** Use [`elm-lang/url`][url] to build URLs.
+
+[url]: http://package.elm-lang.org/packages/elm-lang/url/latest
 -}
 get : String -> Decode.Decoder a -> Request a
 get url decoder =
@@ -390,29 +402,3 @@ type alias Response body =
     , headers : Dict String String
     , body : body
     }
-
-
-
--- LOW-LEVEL
-
-
-{-| Use this to escape query parameters. Converts characters like `/` to `%2F`
-so that it does not clash with normal URL
-
-It work just like `encodeURIComponent` in JavaScript.
--}
-encodeUri : String -> String
-encodeUri =
-  Elm.Kernel.Http.encodeUri
-
-
-{-| Use this to unescape query parameters. It converts things like `%2F` to
-`/`. It can fail in some cases. For example, there is no way to unescape `%`
-because it could never appear alone in a properly escaped string.
-
-It works just like `decodeURIComponent` in JavaScript.
--}
-decodeUri : String -> Maybe String
-decodeUri =
-  Elm.Kernel.Http.decodeUri
-

@@ -2,29 +2,10 @@
 
 import Dict exposing (empty, update)
 import Elm.Kernel.Scheduler exposing (binding, fail, rawSpawn, succeed)
-import Maybe exposing (Maybe(Just, Nothing))
+import Maybe exposing (Maybe(Just))
 import Result exposing (map)
 
 */
-
-// ENCODING AND DECODING
-
-function _Http_encodeUri(string)
-{
-	return encodeURIComponent(string);
-}
-
-function _Http_decodeUri(string)
-{
-	try
-	{
-		return __Maybe_Just(decodeURIComponent(string));
-	}
-	catch(e)
-	{
-		return __Maybe_Nothing;
-	}
-}
 
 
 // SEND REQUEST
