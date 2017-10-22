@@ -5,7 +5,7 @@ module Http exposing
   , request
   , Header, header
   , Body, emptyBody, jsonBody, stringBody, multipartBody, Part, stringPart
-  , Expect, expectString, expectJson, expectStringResponse, Response
+  , Expect, ignoreResponseBody, expectString, expectJson, expectStringResponse, Response
   , encodeUri, decodeUri, toTask
   )
 
@@ -349,6 +349,11 @@ stringPart =
 type alias Expect a =
   Http.Internal.Expect a
 
+{-| Ignore the response body. (Useful for empty bodies!)
+-}
+ignoreResponseBody : Expect ()
+ignoreResponseBody =
+    expectStringResponse (\response -> Ok ())
 
 {-| Expect the response body to be a `String`.
 -}
