@@ -300,7 +300,7 @@ formDataBody : List (String, String) -> Body
 formDataBody formData =
     formData
         |> List.map (\(key, value) -> (encodeUri key) ++ "=" ++ (encodeUri value))
-        |> List.foldr (\keyValuePair1 keyValuePair2 -> keyValuePair1 ++ "&" ++ keyValuePair2) ""
+        |> String.join "&"
         |> Http.Internal.StringBody "application/application/x-www-form-urlencoded; charset=UTF-8" 
 
 
