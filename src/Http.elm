@@ -4,7 +4,7 @@ module Http exposing
   , post
   , request
   , Header, header
-  , Body, emptyBody, jsonBody, stringBody, multipartBody, Part, stringPart
+  , Body, emptyBody, jsonBody, formDataBody, stringBody, multipartBody, Part, stringPart
   , Expect, expectString, expectJson, expectStringResponse, Response
   , encodeUri, decodeUri, toTask
   )
@@ -290,6 +290,18 @@ add the `Content-Type: application/json` header.
 jsonBody : Encode.Value -> Body
 jsonBody value =
   Http.Internal.StringBody "application/json" (Encode.encode 0 value)
+
+
+
+{-| Put list of form data key-value pairs in the body of your `Request`. This will automatically
+add the `Content-Type: application/application/x-www-form-urlencoded; charset=UTF-8` header.
+-}
+formDataBody : List (String, String) -> Body
+formDataBody formData =
+    formData
+        |> List.map (\(key, value) -> (encodeUri key) ++ "=" ++ (encodeUri value))
+        |> List.foldr (\keyValuePair1 keyValuePair2 -> keyValuePair1 ++ "&" ++ keyValuePair2) ""
+        |> Http.Internal.StringBody "application/application/x-www-form-urlencoded; charset=UTF-8" 
 
 
 {-| Put some string in the body of your `Request`. Defining `jsonBody` looks
