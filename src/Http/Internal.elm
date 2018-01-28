@@ -9,7 +9,6 @@ module Http.Internal exposing
 
 
 import Elm.Kernel.Http
-import Time exposing (Time)
 
 
 
@@ -22,7 +21,7 @@ type alias RawRequest a =
     , url : String
     , body : Body
     , expect : Expect a
-    , timeout : Maybe Time
+    , timeout : Maybe Float
     , withCredentials : Bool
     }
 
@@ -33,7 +32,7 @@ type Expect a = Expect
 type Body
   = EmptyBody
   | StringBody String String
-  | FormDataBody
+  | FormDataBody ()
 
 
 
@@ -43,3 +42,16 @@ type Header = Header String String
 map : (a -> b) -> RawRequest a -> RawRequest b
 map func request =
   { request | expect = Elm.Kernel.Http.mapExpect func request.expect }
+
+
+type Xhr = Xhr
+
+
+isStringBody : Body -> Bool
+isStringBody body =
+  case body of
+    StringBody _ _ ->
+      True
+
+    _ ->
+      False

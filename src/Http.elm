@@ -50,7 +50,6 @@ import Elm.Kernel.Http
 import Platform.Cmd as Cmd exposing (Cmd)
 import Result exposing (Result(..))
 import Task exposing (Task)
-import Time exposing (Time)
 
 
 
@@ -87,16 +86,16 @@ type alias Request a =
         Http.getString "https://example.com/books/war-and-peace.md"
 -}
 send : (Result Error a -> msg) -> Request a -> Cmd msg
-send resultToMessage request =
-  Task.attempt resultToMessage (toTask request)
+send resultToMessage request_ =
+  Task.attempt resultToMessage (toTask request_)
 
 
 {-| Convert a `Request` into a `Task`. This is only really useful if you want
 to chain together a bunch of requests (or any other tasks) in a single command.
 -}
 toTask : Request a -> Task Error a
-toTask (Http.Internal.Request request) =
-  Elm.Kernel.Http.toTask request Nothing
+toTask (Http.Internal.Request request_) =
+  Elm.Kernel.Http.toTask request_ Nothing
 
 
 {-| A `Request` can fail in a couple ways:
@@ -234,6 +233,9 @@ this:
         , timeout = Nothing
         , withCredentials = False
         }
+
+The `timeout` is the number of milliseconds you are willing to wait before
+giving up.
 -}
 request
   : { method : String
@@ -241,7 +243,7 @@ request
     , url : String
     , body : Body
     , expect : Expect a
-    , timeout : Maybe Time
+    , timeout : Maybe Float
     , withCredentials : Bool
     }
   -> Request a

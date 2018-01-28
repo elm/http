@@ -23,7 +23,7 @@ Here is an example usage: [demo][] and [code][].
 import Dict
 import Elm.Kernel.Http
 import Http
-import Http.Internal exposing ( Request(Request) )
+import Http.Internal exposing (Request(..))
 import Task exposing (Task)
 import Platform exposing (Router)
 import Process
@@ -142,11 +142,11 @@ onEffects router subs state =
       , (id, trackedRequest) :: new
       )
 
-    (dead, ongoing, new) =
+    (deadReqs, ongoingReqs, newReqs) =
       Dict.merge leftStep bothStep rightStep state subDict ([], Dict.empty, [])
   in
-    Task.sequence dead
-      |> Task.andThen (\_ -> spawnRequests router new ongoing)
+    Task.sequence deadReqs
+      |> Task.andThen (\_ -> spawnRequests router newReqs ongoingReqs)
 
 
 spawnRequests : Router msg Never -> List (String, TrackedRequest msg) -> State -> Task Never State
