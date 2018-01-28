@@ -2,6 +2,7 @@
 
 import Elm.Kernel.Platform exposing (preload)
 import Elm.Kernel.Scheduler exposing (binding)
+import Http.Internal as HI exposing (FormDataBody)
 
 */
 
@@ -27,7 +28,7 @@ function _Http_expectStringResponse(responseToResult)
 
 function _Http_multipart()
 {
-	return { $: 'FormDataBody', a: new FormData() };
+	return __HI_FormDataBody(new FormData());
 }
 
 

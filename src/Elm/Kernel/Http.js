@@ -2,8 +2,10 @@
 
 import Dict exposing (empty, update)
 import Elm.Kernel.Scheduler exposing (binding, fail, rawSpawn, succeed)
-import Maybe exposing (Maybe(Just))
-import Result exposing (map)
+import Http exposing (BadUrl, Timeout, NetworkError, BadStatus, BadPayload)
+import Http.Internal as HI exposing (FormDataBody, isStringBody)
+import Maybe exposing (Just, isJust)
+import Result exposing (map, isOk)
 
 */
 
@@ -19,10 +21,10 @@ var _Http_toTask = F2(function(request, maybeProgress)
 		_Http_configureProgress(xhr, maybeProgress);
 
 		xhr.addEventListener('error', function() {
-			callback(__Scheduler_fail({ $: 'NetworkError' }));
+			callback(__Scheduler_fail(__Http_NetworkError));
 		});
 		xhr.addEventListener('timeout', function() {
-			callback(__Scheduler_fail({ $: 'Timeout' }));
+			callback(__Scheduler_fail(__Http_Timeout));
 		});
 		xhr.addEventListener('load', function() {
 			callback(_Http_handleResponse(xhr, request.__$expect.__responseToResult));
@@ -34,11 +36,16 @@ var _Http_toTask = F2(function(request, maybeProgress)
 		}
 		catch (e)
 		{
-			return callback(__Scheduler_fail({ $: 'BadUrl', a: request.__$url }));
+			return callback(__Scheduler_fail(__Http_BadUrl(request.__$url)));
 		}
 
 		_Http_configureRequest(xhr, request);
-		_Http_send(xhr, request.__$body);
+
+		var body = request.__$body;
+		xhr.send(__HI_isStringBody(body)
+			? (xhr.setRequestHeader('Content-Type', body.a), body.b)
+			: body.a
+		);
 
 		return function() { xhr.abort(); };
 	});
@@ -46,7 +53,7 @@ var _Http_toTask = F2(function(request, maybeProgress)
 
 function _Http_configureProgress(xhr, maybeProgress)
 {
-	if (maybeProgress.$ === 'Nothing')
+	if (!__Maybe_isJust(maybeProgress))
 	{
 		return;
 	}
@@ -65,40 +72,15 @@ function _Http_configureProgress(xhr, maybeProgress)
 
 function _Http_configureRequest(xhr, request)
 {
-	var headers = request.__$headers;
-	while (headers.$ !== '[]')
+	for (var headers = request.__$headers; headers.b; headers = headers.b) // WHILE_CONS
 	{
-		var pair = headers.a;
-		xhr.setRequestHeader(pair.a, pair.b);
-		headers = headers.b;
+		xhr.setRequestHeader(headers.a.a, headers.a.b);
 	}
 
 	xhr.responseType = request.__$expect.__responseType;
 	xhr.withCredentials = request.__$withCredentials;
 
-	if (request.__$timeout.$ === 'Just')
-	{
-		xhr.timeout = request.__$timeout.a;
-	}
-}
-
-function _Http_send(xhr, body)
-{
-	switch (body.$)
-	{
-		case 'EmptyBody':
-			xhr.send();
-			return;
-
-		case 'StringBody':
-			xhr.setRequestHeader('Content-Type', body.a);
-			xhr.send(body.b);
-			return;
-
-		case 'FormDataBody':
-			xhr.send(body.a);
-			return;
-	}
+	__Maybe_isJust(request.__$timeout) && (xhr.timeout = request.__$timeout.a);
 }
 
 
@@ -111,26 +93,19 @@ function _Http_handleResponse(xhr, responseToResult)
 	if (xhr.status < 200 || 300 <= xhr.status)
 	{
 		response.body = xhr.responseText;
-		return __Scheduler_fail({
-			$: 'BadStatus',
-			a: response
-		});
+		return __Scheduler_fail(__Http_BadStatus(response));
 	}
 
 	var result = responseToResult(response);
 
-	if (result.$ === 'Ok')
+	if (__Result_isOk(result))
 	{
 		return __Scheduler_succeed(result.a);
 	}
 	else
 	{
 		response.body = xhr.responseText;
-		return __Scheduler_fail({
-			$: 'BadPayload',
-			a: result.a,
-			b: response
-		});
+		return __Scheduler_fail(__Http_BadPayload(result.a, response));
 	}
 }
 
@@ -164,11 +139,10 @@ function _Http_parseHeaders(rawHeaders)
 			var value = headerPair.substring(index + 2);
 
 			headers = A3(__Dict_update, key, function(oldValue) {
-				if (oldValue.$ === 'Just')
-				{
-					return __Maybe_Just(value + ', ' + oldValue.a);
-				}
-				return __Maybe_Just(value);
+				return __Maybe_Just(__Maybe_isJust(oldValue)
+					? value + ', ' + oldValue.a
+					: value
+				);
 			}, headers);
 		}
 	}
@@ -205,14 +179,13 @@ var _Http_mapExpect = F2(function(func, expect)
 
 function _Http_multipart(parts)
 {
-	var formData = new FormData();
 
-	while (parts.$ !== '[]')
+
+	for (var formData = new FormData(); parts.b; parts = parts.b) // WHILE_CONS
 	{
 		var part = parts.a;
 		formData.append(part.a, part.b);
-		parts = parts.b;
 	}
 
-	return { $: 'FormDataBody', a: formData };
+	return __HI_FormDataBody(formData);
 }
