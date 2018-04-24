@@ -40,8 +40,15 @@ type Header = Header String String
 
 
 map : (a -> b) -> RawRequest a -> RawRequest b
-map func request =
-  { request | expect = Elm.Kernel.Http.mapExpect func request.expect }
+map func { method, headers, url, body, expect, timeout, withCredentials } =
+  { method = method
+  , headers = headers
+  , url = url
+  , body = body
+  , expect = Elm.Kernel.Http.mapExpect func expect
+  , timeout = timeout
+  , withCredentials = withCredentials
+  }
 
 
 type Xhr = Xhr
