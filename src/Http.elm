@@ -13,7 +13,7 @@ module Http exposing
 
 Check out the [`elm-lang/url`][url] package for help creating URLs.
 
-[url]: http://package.elm-lang.org/packages/elm-lang/url/latest
+[url]: /packages/elm-lang/url/latest
 
 # Send Requests
 @docs Request, send, Error
@@ -134,7 +134,7 @@ type Error
 
 **Note:** Use [`elm-lang/url`][url] to build URLs.
 
-[url]: http://package.elm-lang.org/packages/elm-lang/url/latest
+[url]: /packages/elm-lang/url/latest
 -}
 getString : String -> Request String
 getString url =
@@ -165,7 +165,7 @@ You can learn more about how JSON decoders work [here][] in the guide.
 
 **Note:** Use [`elm-lang/url`][url] to build URLs.
 
-[url]: http://package.elm-lang.org/packages/elm-lang/url/latest
+[url]: /packages/elm-lang/url/latest
 -}
 get : String -> Decode.Decoder a -> Request a
 get url decoder =
