@@ -11,9 +11,9 @@ module Http exposing
 
 {-| Create and send HTTP requests.
 
-Check out the [`elm-lang/url`][url] package for help creating URLs.
+Check out the [`elm/url`][url] package for help creating URLs.
 
-[url]: /packages/elm-lang/url/latest
+[url]: /packages/elm/url/latest
 
 # Send Requests
 @docs Request, send, Error
@@ -132,9 +132,9 @@ type Error
     getWarAndPeace =
       Http.getString "https://example.com/books/war-and-peace"
 
-**Note:** Use [`elm-lang/url`][url] to build URLs.
+**Note:** Use [`elm/url`][url] to build URLs.
 
-[url]: /packages/elm-lang/url/latest
+[url]: /packages/elm/url/latest
 -}
 getString : String -> Request String
 getString url =
@@ -163,9 +163,9 @@ You can learn more about how JSON decoders work [here][] in the guide.
 
 [here]: https://guide.elm-lang.org/interop/json.html
 
-**Note:** Use [`elm-lang/url`][url] to build URLs.
+**Note:** Use [`elm/url`][url] to build URLs.
 
-[url]: /packages/elm-lang/url/latest
+[url]: /packages/elm/url/latest
 -}
 get : String -> Decode.Decoder a -> Request a
 get url decoder =
@@ -274,7 +274,7 @@ and provide helpers for cases that are common on the client-side. If this
 sounds nice to you, open an issue [here][] describing the helper you want and
 why you need it.
 
-[here]: https://github.com/elm-lang/http/issues
+[here]: https://github.com/elm/http/issues
 -}
 header : String -> String -> Header
 header =
