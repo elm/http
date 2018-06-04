@@ -105,7 +105,7 @@ function _Http_handleResponse(xhr, responseToResult)
 	else
 	{
 		response.body = xhr.responseText;
-		return __Scheduler_fail(__Http_BadPayload(result.a, response));
+		return __Scheduler_fail(A2(__Http_BadPayload, result.a, response));
 	}
 }
 
