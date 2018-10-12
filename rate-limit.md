@@ -38,3 +38,5 @@ throttle ms =
 ```
 
 It would be nice to have some useful strategies defined in a separate package so folks can experiment and find names and implementations that work well for specific scenarios.
+
+Just a sketch for now.  Of the packages that do it in the meantime, I think https://github.com/jinjor/elm-debounce is very well done.
