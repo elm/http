@@ -53,5 +53,5 @@ send =
 
 To understand how HTTP works in Elm, check out:
 
-  - [The HTTP example in the guide](https://guide.elm-lang.org/architecture/effects/http.html) to see a simple usage with some explanation.
+  - [The HTTP example in the guide](https://guide.elm-lang.org/effects/http.html) to see a simple usage with some explanation.
   - [The Elm Architecture](https://guide.elm-lang.org/architecture/) to understand how HTTP fits into Elm in a more complete way. This will explain concepts like `Cmd` and `Sub` that appear in this package.
