@@ -1,32 +1,19 @@
-module Http exposing
-  ( Request, send
-  , getString, get, post
-  , request
+effect module Http where { command = MyCmd, subscription = MySub } exposing
+  ( get, post, request
   , Header, header
   , Body, emptyBody, stringBody, jsonBody, fileBody, bytesBody
   , multipartBody, Part, stringPart, filePart, bytesPart
-  , Expect, expectString, expectJson, expectBytes, expectWhatever
-  , Progress(..), track
-  , Error(..)
+  , Expect, expectString, expectJson, expectBytes, expectWhatever, Error(..)
+  , track, Progress(..), fractionSent, fractionReceived
+  , riskyRequest
+  , expectStringResponse, expectBytesResponse, Response(..), Metadata
+  , task, Resolver, stringResolver, bytesResolver, riskyTask
   )
 
-{-| Create and send HTTP requests.
-
-Check out the [`elm/url`][url] package for help creating URLs.
-
-[url]: /packages/elm/url/latest
+{-| Send HTTP requests.
 
 # Requests
-@docs Request, send
-
-# GET
-@docs getString, get
-
-# POST
-@docs post
-
-# Custom Request
-@docs request
+@docs get, post, request
 
 # Header
 @docs Header, header
@@ -38,24 +25,30 @@ Check out the [`elm/url`][url] package for help creating URLs.
 @docs multipartBody, Part, stringPart, filePart, bytesPart
 
 # Expect
-@docs Expect, expectString, expectJson, expectBytes, expectWhatever
+@docs Expect, expectString, expectJson, expectBytes, expectWhatever, Error
 
 # Progress
-@docs Progress, track
+@docs track, Progress, fractionSent, fractionReceived
 
-# Error
-@docs Error
+# Risky Requests
+@docs riskyRequest
 
+# Elaborate Expectations
+@docs expectStringResponse, expectBytesResponse, Response, Metadata
+
+# Tasks
+@docs task, Resolver, stringResolver, bytesResolver, riskyTask
 -}
 
 
 import Bytes exposing (Bytes)
 import Bytes.Decode as Bytes
+import Dict exposing (Dict)
+import Elm.Kernel.Http
 import File exposing (File)
-import Http.Advanced as A
 import Json.Decode as Decode
 import Json.Encode as Encode
-import Elm.Kernel.Http
+import Process
 import Task exposing (Task)
 
 
@@ -63,153 +56,123 @@ import Task exposing (Task)
 -- REQUESTS
 
 
-{-| Describes an HTTP request.
--}
-type Request a =
-  Request
-    { method : String
-    , headers : List Header
-    , url : String
-    , body : Body
-    , expect : Expect a
-    , timeout : Maybe Float
-    , tracker : Maybe String
-    , allowCookiesFromOtherDomains : Bool
-    }
-
-
-
--- STRINGS
-
-
-{-| Create a `GET` request and interpret the response body as a `String`.
+{-| Create a `GET` request.
 
     import Http
 
-    getWarAndPeace : Http.Request String
+    type Msg
+      = GotBook (Result Http.Error String)
+
+    getWarAndPeace : Cmd Msg
     getWarAndPeace =
-      Http.getString "https://example.com/books/war-and-peace"
+      Http.get
+        { url = "https://example.com/books/war-and-peace"
+        , expect = Http.expectString GotBook
+        }
 
-**Note:** Use [`elm/url`][url] to build URLs.
+You can use functions like [`expectString`](#expectString) and
+[`expectJson`](#expectJson) to interpret the response in different ways. In
+this example, we are expecting the response body to be a `String` containing
+the text of “War and Peace” by Leo Tolstoy.
 
-[url]: /packages/elm/url/latest
+**Note:** Use [`elm/url`](/packages/elm/url/latest) to build reliable URLs.
 -}
-getString : String -> Request String
-getString url =
-  Request
+get
+  : { url : String
+    , expect : Expect msg
+    }
+  -> Cmd msg
+get r =
+  request
     { method = "GET"
     , headers = []
-    , url = url
+    , url = r.url
     , body = emptyBody
-    , expect = expectString
+    , expect = r.expect
     , timeout = Nothing
     , tracker = Nothing
-    , allowCookiesFromOtherDomains = False
     }
 
 
-
--- JSON
-
-
-{-| Create a `GET` request and try to decode the response body from JSON to
-some Elm value.
+{-| Create a `POST` request. So imagine we want to send a POST request for
+some JSON data. It might look like this:
 
     import Http
     import Json.Decode exposing (list, string)
 
-    getBooks : Http.Request (List String)
-    getBooks =
-      Http.get "https://example.com/books" (list string)
+    type Msg
+      = GotBooks (Result Http.Error (List String))
 
-You can learn more about how JSON decoders work [here][json] in the guide, and
-you can reliably build URLs with the [`elm/url`][url] package.
-
-[json]: https://guide.elm-lang.org/interop/json.html
-[url]: /packages/elm/url/latest
--}
-get : String -> Decode.Decoder a -> Request a
-get url decoder =
-  Request
-    { method = "GET"
-    , headers = []
-    , url = url
-    , body = emptyBody
-    , expect = expectJson decoder
-    , timeout = Nothing
-    , tracker = Nothing
-    , allowCookiesFromOtherDomains = False
-    }
-
-
-{-| Create a `POST` request and try to decode the response body from JSON to
-an Elm value. For example, if we want to send a POST without any data in the
-request body, it would be like this:
-
-    import Http
-    import Json.Decode exposing (list, string)
-
-    postBooks : Http.Request (List String)
+    postBooks : Cmd Msg
     postBooks =
-      Http.post "https://example.com/books" Http.emptyBody (list string)
+      Http.post
+        { url = "https://example.com/books"
+        , body = Http.emptyBody
+        , expect = Http.expectJson GotBooks (list string)
+        }
 
-See [`jsonBody`](#jsonBody) to learn how to have a more interesting request
-body. And check out [this section][json] of the guide to learn more about
-JSON decoders.
+Notice that we are using [`expectJson`](#expectJson) to interpret the response
+as JSON. You can learn more about how JSON decoders work [here][] in the guide.
 
-[json]: https://guide.elm-lang.org/interop/json.html
+We did not put anything in the body of our request, but you can use functions
+like [`stringBody`](#stringBody) and [`jsonBody`](#jsonBody) if you need to
+send information to the server.
 
+[here]: https://guide.elm-lang.org/interop/json.html
 -}
-post : String -> Body -> Decode.Decoder a -> Request a
-post url body decoder =
-  Request
+post
+  : { url : String
+    , body : Body
+    , expect : Expect msg
+    }
+  -> Cmd msg
+post r =
+  request
     { method = "POST"
     , headers = []
-    , url = url
-    , body = body
-    , expect = expectJson decoder
+    , url = r.url
+    , body = r.body
+    , expect = r.expect
     , timeout = Nothing
     , tracker = Nothing
-    , allowCookiesFromOtherDomains = False
     }
 
 
+{-| Create a custom request. For example, a PUT for files might look like this:
 
--- CUSTOM REQUESTS
+    import File
+    import Http
 
+    type Msg = Uploaded (Result Http.Error ())
 
-{-| Create a custom request. For example, a custom PUT request would look like
-this:
-
-    import Http exposing (Request, Body, request, expectWhatever)
-
-    put : String -> Body -> Request ()
-    put url body =
-      request
+    upload : File.File -> Cmd Msg
+    upload file =
+      Http.request
         { method = "PUT"
         , headers = []
-        , url = url
-        , body = body
-        , expect = expectWhatever
+        , url = "https://example.com/publish"
+        , body = Http.fileBody file
+        , expect = Http.expectWhatever Uploaded
         , timeout = Nothing
         , tracker = Nothing
         }
 
-The `timeout` is the number of milliseconds you are willing to wait before
-giving up.
+It lets you set custom `headers` as needed. The `timeout` is the number of
+milliseconds you are willing to wait before giving up. The `tracker` lets you
+track the request with a [`track`](#track) subscription.
 -}
 request
   : { method : String
     , headers : List Header
     , url : String
     , body : Body
-    , expect : Expect a
+    , expect : Expect msg
     , timeout : Maybe Float
     , tracker : Maybe String
     }
-  -> Request a
+  -> Cmd msg
 request r =
-  Request
+  command <| MyCmd <|
     { method = r.method
     , headers = r.headers
     , url = r.url
@@ -433,59 +396,62 @@ bytesPart key mime bytes =
 
 {-| Logic for interpreting a response body.
 -}
-type Expect a = Expect
+type Expect msg = Expect
 
 
 {-| Expect the response body to be a `String`.
 -}
-expectString : Expect String
-expectString =
-  Elm.Kernel.Http.pair "string" (resolve Ok)
+expectString : (Result Error String -> msg) -> Expect msg
+expectString toMsg =
+  expectStringResponse toMsg (resolve Ok)
 
 
 {-| Expect the response body to be JSON.
-Use [`elm/json`](/packages/elm/json/latest/) to define a decoder that turns
-that JSON into Elm values.
 
-If the decoder fails, you get a `BadBody` error. If you want richer error
-information, use [`Http.Advanced`](/packages/elm/http/latest/Http-Advanced).
+The official guide has a section on JSON [here][]. It will teach you how to
+use [`elm/json`][json] to turn a JSON body into an Elm value.
+
+[here]: https://guide.elm-lang.org/interop/json.html
+[json]: /packages/elm/json/latest/
+
+If the JSON decoder fails, you get a `BadBody` error.
 -}
-expectJson : Decode.Decoder a -> Expect a
-expectJson decoder =
-  Elm.Kernel.Http.pair "string" <| resolve <|
+expectJson : (Result Error a -> msg) -> Decode.Decoder a -> Expect msg
+expectJson toMsg decoder =
+  expectStringResponse toMsg <| resolve <|
     \string ->
       Result.mapError Decode.errorToString (Decode.decodeString decoder string)
 
 
 {-| Expect the response body to be binary data.
-Use [`elm/bytes`](/packages/elm/bytes/latest/) to define a decoder that turns
-binary data into Elm values.
 
-If the decoder fails, you get a `BadBody` error. If you want richer error
-information, use [`Http.Advanced`](/packages/elm/http/latest/Http-Advanced).
+Use [`elm/bytes`](/packages/elm/bytes/latest/) to decode the binary data into
+Elm values.
+
+If the decoder fails, you get a `BadBody` error.
 -}
-expectBytes : Bytes.Decoder a -> Expect a
-expectBytes decoder =
-  Elm.Kernel.Http.pair "arraybuffer" <| resolve <|
+expectBytes : (Result Error a -> msg) -> Bytes.Decoder a -> Expect msg
+expectBytes toMsg decoder =
+  expectBytesResponse toMsg <| resolve <|
     \bytes ->
       Result.fromMaybe "unexpected bytes" (Bytes.decode decoder bytes)
 
 
-{-| Do not have any expectations of the response body. Just ignore it.
+{-| Expect the response body to be whatever. It does not matter. Ignore it!
 -}
-expectWhatever : Expect ()
-expectWhatever =
-  Elm.Kernel.Http.pair "string" (resolve (\_ -> Ok ()))
+expectWhatever : (Result Error () -> msg) -> Expect msg
+expectWhatever toMsg =
+  expectBytesResponse toMsg (resolve (\_ -> Ok ()))
 
 
-resolve : (body -> Result String a) -> A.Response body -> Result Error a
-resolve func response =
+resolve : (body -> Result String a) -> Response body -> Result Error a
+resolve toResult response =
   case response of
-    A.BadUrl url -> Err (BadUrl url)
-    A.Timeout -> Err (Timeout)
-    A.NetworkError -> Err (NetworkError)
-    A.BadStatus metadata _ -> Err (BadStatus metadata.statusCode)
-    A.GoodStatus _ body -> Result.mapError BadBody (func body)
+    BadUrl_ url -> Err (BadUrl url)
+    Timeout_ -> Err Timeout
+    NetworkError_ -> Err NetworkError
+    BadStatus_ metadata _ -> Err (BadStatus metadata.statusCode)
+    GoodStatus_ _ body -> Result.mapError BadBody (toResult body)
 
 
 {-| A `Request` can fail in a couple ways:
@@ -499,11 +465,8 @@ of the response was something unexpected. The `String` in this case is a
 debugging message that explains what went wrong with your JSON decoder or
 whatever.
 
-**Note:** Use [`Http.Advanced`](/packages/elm/http/latest/Http-Advanced) if
-you need more information in your errors. For example, when something is not
-found (404) the response also has JSON in the body that explains more. Maybe
-you want to decode that JSON and show it on screen. The advanced module
-supports stuff like that!
+**Note:** You can use [`expectStringResponse`](#expectStringResponse) and
+[`expectBytesResponse`](#expectBytesResponse) to get more flexibility on this.
 -}
 type Error
   = BadUrl String
@@ -514,101 +477,423 @@ type Error
 
 
 
--- SEND
+-- ELABORATE EXPECTATIONS
 
 
-{-| Send a `Request`. We could get the text of “War and Peace” like this:
+{-| Expect a [`Response`](#Response) with a `String` body. So you could define
+your own [`expectJson`](#expectJson) like this:
 
     import Http
+    import Json.Decode as D
 
-    type Msg = Click | NewBook (Result Http.Error String)
+    expectJson : (Result Http.Error a -> msg) -> D.Decoder a -> Expect msg
+    expectJson toMsg decoder =
+      expectStringResponse toMsg <|
+        \response ->
+          case response of
+            Http.BadUrl_ url ->
+              Err (Http.BadUrl url)
 
-    update : Msg -> Model -> ( Model, Cmd Msg )
-    update msg model =
-      case msg of
-        Click ->
-          ( model, getWarAndPeace )
+            Http.Timeout_ ->
+              Err Http.Timeout
 
-        NewBook result ->
-          ...
+            Http.NetworkError_ ->
+              Err Http.NetworkError
 
-    getWarAndPeace : Cmd Msg
-    getWarAndPeace =
-      Http.send NewBook <|
-        Http.getString "https://example.com/books/war-and-peace.md"
+            Http.BadStatus_ metadata body ->
+              Err (Http.BadStatus metadata.statusCode)
 
-For a complete example, read [the official guide](https://guide.elm-lang.org/)
-up to [the section on HTTP](https://guide.elm-lang.org/effects/http.html)!
+            Http.GoodStatus_ metadata body ->
+              case D.decodeString decoder body of
+                Ok value ->
+                  Ok value
+
+                Err err ->
+                  BadBody (D.errorToString err)
+
+This function is great for fancier error handling and getting response headers.
+For example, maybe when your sever gives a 404 status code (not found) it also
+provides a helpful JSON message in the response body. This function lets you
+add logic to the `BadStatus_` branch so you can parse that JSON and give users
+a more helpful message! Or make your own custom error type for your particular
+application!
 -}
-send : (Result Error a -> msg) -> Request a -> Cmd msg
-send toMsg (Request r) =
-  A.send toMsg (A.request (Elm.Kernel.Http.coerce r))
+expectStringResponse : (Result x a -> msg) -> (Response String -> Result x a) -> Expect msg
+expectStringResponse toMsg toResult =
+  Elm.Kernel.Http.expect "" identity (toResult >> toMsg)
+
+
+{-| Expect a [`Response`](#Response) with a `Bytes` body.
+
+It works just like [`expectStringResponse`](#expectStringResponse), giving you
+more access to headers and more leeway in defining your own errors.
+-}
+expectBytesResponse : (Result x a -> msg) -> (Response Bytes -> Result x a) -> Expect msg
+expectBytesResponse toMsg toResult =
+  Elm.Kernel.Http.expect "arraybuffer" Elm.Kernel.Http.toDataView (toResult >> toMsg)
+
+
+{-| A `Response` can come back a couple different ways:
+
+- `BadUrl_` means you did not provide a valid URL.
+- `Timeout_` means it took too long to get a response.
+- `NetworkError_` means the user turned off their wifi, went in a cave, etc.
+- `BadResponse_` means you got a response back, but the status code indicates failure.
+- `GoodResponse_` means you got a response back with a nice status code!
+
+The type of the `body` depends on whether you use
+[`expectStringResponse`](#expectStringResponse)
+or [`expectBytesResponse`](#expectBytesResponse).
+-}
+type Response body
+  = BadUrl_ String
+  | Timeout_
+  | NetworkError_
+  | BadStatus_ Metadata body
+  | GoodStatus_ Metadata body
+
+
+{-| Extra information about the response:
+
+- `url` of the server that actually responded (so you can detect redirects)
+- `statusCode` like `200` or `404`
+- `statusText` describing what the `statusCode` means a little
+- `headers` like `Content-Length` and `Expires`
+
+**Note:** It is possible for a response to have the same header multiple times.
+In that case, all the values end up in a single entry in the `headers`
+dictionary. The values are separated by commas, following the rules outlined
+[here](https://stackoverflow.com/questions/4371328/are-duplicate-http-response-headers-acceptable).
+-}
+type alias Metadata =
+  { url : String
+  , statusCode : Int
+  , statusText : String
+  , headers : Dict String String
+  }
 
 
 
 -- PROGRESS
 
 
+{-| Track the progress of a request. Create a [`request`](#request) where
+`tracker = Just "form.pdf"` and you can track it with a subscription like
+`track "form.pdf" GotProgress`.
+-}
+track : String -> (Progress -> msg) -> Sub msg
+track tracker toMsg =
+  subscription (MySub tracker toMsg)
+
+
 {-| There are two phases to HTTP requests. First you **send** a bunch of data,
 then you **receive** a bunch of data. For example, say you use `fileBody` to
-upload a file of 382124 bytes. From there, progress will go like this:
+upload a file of 262144 bytes. From there, progress will go like this:
 
 ```
-Sending 0.0
-Sending 0.2
-Sending 0.5
-Sending 0.7
-Sending 0.9
-Sending 1.0
-Receiving 0.0
-Receiving 1.0
+Sending   { sent =      0, size = 262144 }  -- 0.0
+Sending   { sent =  65536, size = 262144 }  -- 0.25
+Sending   { sent = 131072, size = 262144 }  -- 0.5
+Sending   { sent = 196608, size = 262144 }  -- 0.75
+Sending   { sent = 262144, size = 262144 }  -- 1.0
+Receiving { received =  0, size = Just 16 } -- 0.0
+Receiving { received = 16, size = Just 16 } -- 1.0
 ```
 
 With file uploads, the **send** phase is expensive. That is what we saw in our
-example! But with file downloads, the **receive** phase is expensive. Either
-way, the fractions are always between `0.0` and `1.0`.
+example. But with file downloads, the **receive** phase is expensive.
 
-**Note:** The `Receiving` fraction is based on the [`Content-Length`][cl]
+Use [`fractionSent`](#fractionSent) and [`fractionReceived`](#fractionReceived)
+to turn this progress information into specific fractions!
+
+**Note:** The `size` of the response is based on the [`Content-Length`][cl]
 header, and in rare and annoying cases, a server may not include that header.
-The `Http` module gives `Receiving 0.0` during the whole receive phase in
-those cases, but you can use the progress tracking in [`Http.Advanced`][ad] to
-do something else instead.
+That is why the `size` is a `Maybe Int` in `Receiving`.
 
 [cl]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Length
-[ad]: /packages/elm/http/latest/Http-Advanced
 -}
 type Progress
-  = Sending Float
-  | Receiving Float
+  = Sending { sent : Int, size : Int }
+  | Receiving { received : Int, size : Maybe Int }
 
 
-{-| Track the progress of a request. Create a request where
-`tracker = Just "form.pdf"` and you can track it with a subscription like
-`track "form.pdf" GotProgress`.
+{-| Turn `Sending` progress into a useful fraction.
 
-**Note:** A progress percentage cannot be determined if (1) the content has
-zero bytes or (2) a response leaves off the `Content-Length` header. In those
-cases, the percentage given will be `0.0`. If you want to do something fancier
-in those cases, use [`Http.Advanced.track`][hat] instead!
+    fractionSent { sent =   0, size = 1024 } == 0.0
+    fractionSent { sent = 256, size = 1024 } == 0.25
+    fractionSent { sent = 512, size = 1024 } == 0.5
 
-[hat]: /packages/elm/http/latest/Http-Advanced#track
+    -- fractionSent { sent = 0, size = 0 } == 1.0
+
+The result is always between `0.0` and `1.0`, ensuring that any progress bar
+animations never go out of bounds.
+
+And notice that `size` can be zero. That means you are sending a request with
+an empty body. Very common! When `size` is zero, the result is always `1.0`.
+
+**Note:** If you create your own function to compute this fraction, watch out
+for divide-by-zero errors!
 -}
-track : String -> (Progress -> msg) -> Sub msg
-track tracker func =
-  A.track tracker (toSimpleProgress >> func)
+fractionSent : { sent : Int, size : Int } -> Float
+fractionSent p =
+  if p.size == 0 then
+    1
+  else
+    clamp 0 1 (toFloat p.sent / toFloat p.size)
 
 
-toSimpleProgress : A.Progress -> Progress
-toSimpleProgress progress =
-  case progress of
-    A.Sending { sent, size } ->
-      if size == 0 then
-        Sending 0
+{-| Turn `Receiving` progress into a useful fraction for progress bars.
+
+    fractionReceived { received =   0, size = Just 1024 } == 0.0
+    fractionReceived { received = 256, size = Just 1024 } == 0.25
+    fractionReceived { received = 512, size = Just 1024 } == 0.5
+
+    -- fractionReceived { received =   0, size = Nothing } == 0.0
+    -- fractionReceived { received = 256, size = Nothing } == 0.0
+    -- fractionReceived { received = 512, size = Nothing } == 0.0
+
+The `size` here is based on the [`Content-Length`][cl] header which may be
+missing in some cases. A server may be misconfigured or it may be streaming
+data and not actually know the final size. Whatever the case, this function
+will always give `0.0` when the final size is unknown.
+
+Furthermore, the `Content-Length` header may be incorrect! The implementation
+clamps the fraction between `0.0` and `1.0`, so you will just get `1.0` if
+you ever receive more bytes than promised.
+
+**Note:** If you are streaming something, you can write a custom version of
+this function that just tracks bytes received. Maybe you show that 22kb or 83kb
+have been downloaded, without a specific fraction. If you do this, be wary of
+divide-by-zero errors because `size` can always be zero!
+
+[cl]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Length
+-}
+fractionReceived : { received : Int, size : Maybe Int } -> Float
+fractionReceived p =
+  case p.size of
+    Nothing ->
+      0
+
+    Just n ->
+      if n == 0 then
+        1
       else
-        Sending (toFloat sent / toFloat size)
+        clamp 0 1 (toFloat p.received / toFloat n)
 
-    A.Receiving { received, size } ->
-      case size of
-        Nothing -> Receiving 0
-        Just 0 -> Receiving 0
-        Just n -> Receiving (toFloat received / toFloat n)
+
+
+-- CUSTOM REQUESTS
+
+
+{-| Create a request with a risky security policy. Things like:
+
+- Allow responses from other domains to set cookies.
+- Include cookies in requests to other domains.
+
+This is called [`withCredentials`][wc] in JavaScript, and it allows a couple
+other risky things as well. It can be useful if `www.example.com` needs to
+talk to `uploads.example.com`, but it should be used very carefully!
+
+For example, every HTTP request includes a `Host` header revealing the domain,
+so any request to `facebook.com` reveals the website that sent it. From there,
+cookies can be used to correlate browsing habits with specific users. “Oh, it
+looks like they visited `example.com`. Maybe they want ads about examples!”
+This is why you can get shoe ads for months without saying anything about it
+on any social networks. **This risk exists even for people who do not have an
+account.** Servers can set a new cookie to uniquely identify the browser and
+build a profile around that. Same kind of tricks for logged out users.
+
+**Context:** A significantly worse version of this can happen when trying to
+add integrations with Google, Facebook, Pinterest, Twitter, etc. “Add our share
+button. It is super easy. Just add this `<script>` tag!” But the goal here is
+to get _arbitrary_ access to the executing context. Now they can track clicks,
+read page content, use time zones to approximate location, etc. As of this
+writing, suggesting that developers just embed `<script>` tags is the default
+for Google Analytics, Facebook Like Buttons, Twitter Follow Buttons, Pinterest
+Save Buttons, and Instagram Embeds.
+
+[ah]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization
+[wc]: https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/withCredentials
+-}
+riskyRequest
+  : { method : String
+    , headers : List Header
+    , url : String
+    , body : Body
+    , expect : Expect msg
+    , timeout : Maybe Float
+    , tracker : Maybe String
+    }
+  -> Cmd msg
+riskyRequest r =
+  command <| MyCmd <|
+    { method = r.method
+    , headers = r.headers
+    , url = r.url
+    , body = r.body
+    , expect = r.expect
+    , timeout = r.timeout
+    , tracker = r.tracker
+    , allowCookiesFromOtherDomains = True
+    }
+
+
+
+-- TASKS
+
+
+task
+  : { method : String
+    , headers : List Header
+    , url : String
+    , body : Body
+    , resolver : Resolver x a
+    , timeout : Maybe Float
+    }
+  -> Task x a
+task r =
+  Elm.Kernel.Http.toTask resultToTask
+    { method = r.method
+    , headers = r.headers
+    , url = r.url
+    , body = r.body
+    , expect = r.resolver
+    , timeout = r.timeout
+    , tracker = Nothing
+    , allowCookiesFromOtherDomains = False
+    }
+
+
+type Resolver x a = Resolver
+
+
+stringResolver : (Response String -> Result x a) -> Resolver x a
+stringResolver =
+  Elm.Kernel.Http.expect "" identity
+
+
+bytesResolver : (Response Bytes -> Result x a) -> Resolver x a
+bytesResolver =
+  Elm.Kernel.Http.expect "arraybuffer" Elm.Kernel.Http.toDataView
+
+
+riskyTask
+  : { method : String
+    , headers : List Header
+    , url : String
+    , body : Body
+    , resolver : Resolver x a
+    , timeout : Maybe Float
+    }
+  -> Task x a
+riskyTask r =
+  Elm.Kernel.Http.toTask resultToTask
+    { method = r.method
+    , headers = r.headers
+    , url = r.url
+    , body = r.body
+    , expect = r.resolver
+    , timeout = r.timeout
+    , tracker = Nothing
+    , allowCookiesFromOtherDomains = True
+    }
+
+
+resultToTask : Result x a -> Task x a
+resultToTask result =
+  case result of
+    Ok a -> Task.succeed a
+    Err x -> Task.fail x
+
+
+
+-- COMMANDS and SUBSCRIPTIONS
+
+
+type MyCmd msg =
+  MyCmd
+    { method : String
+    , headers : List Header
+    , url : String
+    , body : Body
+    , expect : Expect msg
+    , timeout : Maybe Float
+    , tracker : Maybe String
+    , allowCookiesFromOtherDomains : Bool
+    }
+
+
+cmdMap : (a -> b) -> MyCmd a -> MyCmd b
+cmdMap func (MyCmd r) =
+  MyCmd
+    { method = r.method
+    , headers = r.headers
+    , url = r.url
+    , body = r.body
+    , expect = Elm.Kernel.Http.mapExpect func r.expect
+    , timeout = r.timeout
+    , tracker = r.tracker
+    , allowCookiesFromOtherDomains = r.allowCookiesFromOtherDomains
+    }
+
+
+type MySub msg =
+  MySub String (Progress -> msg)
+
+
+subMap : (a -> b) -> MySub a -> MySub b
+subMap func (MySub tracker toMsg) =
+  MySub tracker (toMsg >> func)
+
+
+
+-- EFFECT MANAGER
+
+
+type alias State msg =
+  List (MySub msg)
+
+
+init : Task Never (State msg)
+init =
+  Task.succeed []
+
+
+type alias MyRouter msg =
+  Platform.Router msg SelfMsg
+
+
+-- APP MESSAGES
+
+
+onEffects : MyRouter msg -> List (MyCmd msg) -> List (MySub msg) -> State msg -> Task Never (State msg)
+onEffects router cmds subs _ =
+  Task.sequence (List.map (spawn router) cmds)
+    |> Task.andThen (\_ -> Task.succeed subs)
+
+
+spawn : MyRouter msg -> MyCmd msg -> Task x Process.Id
+spawn router (MyCmd req) =
+  Process.spawn (Elm.Kernel.Http.toTask (Platform.sendToApp router) req)
+
+
+
+-- SELF MESSAGES
+
+
+type alias SelfMsg =
+  (String, Progress)
+
+
+onSelfMsg : MyRouter msg -> SelfMsg -> State msg -> Task Never (State msg)
+onSelfMsg router (tracker, progress) state =
+  Task.sequence (List.filterMap (maybeSend router tracker progress) state)
+    |> Task.andThen (\_ -> Task.succeed state)
+
+
+maybeSend : MyRouter msg -> String -> Progress -> MySub msg -> Maybe (Task x ())
+maybeSend router desiredTracker progress (MySub actualTracker toMsg) =
+  if desiredTracker == actualTracker then
+    Just (Platform.sendToApp router (toMsg progress))
+  else
+    Nothing

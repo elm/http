@@ -3,7 +3,7 @@
 import Dict exposing (empty, update)
 import Elm.Kernel.Scheduler exposing (binding, fail, rawSpawn, succeed)
 import Elm.Kernel.Utils exposing (Tuple2)
-import Http.Advanced as Http exposing (BadUrl, Timeout, NetworkError, BadStatus, GoodStatus, Sending, Receiving)
+import Http exposing (BadUrl_, Timeout_, NetworkError_, BadStatus_, GoodStatus_, Sending, Receiving)
 import Maybe exposing (Just, Nothing, isJust)
 import Platform exposing (sendToApp, sendToSelf)
 import Result exposing (map, isOk)
@@ -11,31 +11,26 @@ import Result exposing (map, isOk)
 */
 
 
-// COERCE
-
-function _Http_coerce(x) { return x; }
-
-
 // SEND REQUEST
 
-var _Http_toTask = F3(function(router, toMsg, request)
+var _Http_toTask = F2(function(toTask, request)
 {
 	return __Scheduler_binding(function(callback)
 	{
 		function done(response) {
-			callback(A2(__Platform_sendToApp, router, toMsg(request.__$expect.b(response))));
+			callback(toTask(request.__$expect.__toValue(response)));
 		}
 
 		var xhr = new XMLHttpRequest();
-		xhr.addEventListener('error', function() { done(__Http_NetworkError); });
-		xhr.addEventListener('timeout', function() { done(__Http_Timeout); });
-		xhr.addEventListener('load', function() { done(_Http_toResponse(xhr)); });
+		xhr.addEventListener('error', function() { done(__Http_NetworkError_); });
+		xhr.addEventListener('timeout', function() { done(__Http_Timeout_); });
+		xhr.addEventListener('load', function() { done(_Http_toResponse(request.__$expect.__toBody, xhr)); });
 		__Maybe_isJust(request.__$tracker) && _Http_track(router, xhr, request.__$tracker.a);
 
 		try {
 			xhr.open(request.__$method, request.__$url, true);
 		} catch (e) {
-			return done(__Http_BadUrl(request.__$url));
+			return done(__Http_BadUrl_(request.__$url));
 		}
 
 		_Http_configureRequest(xhr, request);
@@ -57,20 +52,19 @@ function _Http_configureRequest(xhr, request)
 		xhr.setRequestHeader(headers.a.a, headers.a.b);
 	}
 	xhr.timeout = request.__$timeout.a || 0;
-	xhr.responseType = request.__$expect.a;
+	xhr.responseType = request.__$expect.__type;
 	xhr.withCredentials = request.__$allowCookiesFromOtherDomains;
 }
 
 
 // RESPONSES
 
-function _Http_toResponse(xhr)
+function _Http_toResponse(toBody, xhr)
 {
-	console.log(typeof xhr.response); // TODO new DataView()
 	return A2(
-		200 <= xhr.status && xhr.status < 300 ? __Http_GoodStatus : __Http_BadStatus,
+		200 <= xhr.status && xhr.status < 300 ? __Http_GoodStatus_ : __Http_BadStatus_,
 		_Http_toMetadata(xhr),
-		xhr.response
+		toBody(xhr.response)
 	);
 }
 
@@ -120,13 +114,38 @@ function _Http_parseHeaders(rawHeaders)
 }
 
 
-// PAIR
+// EXPECT
 
-var _Http_pair = F2(function(a, b) { return { $: 0, a: a, b: b }; });
+var _Http_expect = F3(function(type, toBody, toValue)
+{
+	return {
+		$: 0,
+		__type: type,
+		__toBody: toBody,
+		__toValue: toValue
+	};
+});
+
+var _Http_mapExpect = F2(function(func, expect)
+{
+	return {
+		$: 0,
+		__type: expect.__type,
+		__toBody: expect.__toBody,
+		__toValue: function(x) { return func(expect.__toValue(x)); }
+	};
+});
+
+function _Http_toDataView(arrayBuffer)
+{
+	return new DataView(arrayBuffer);
+}
+
+
+// BODY and PARTS
+
 var _Http_emptyBody = { $: 0 };
-
-
-// BODY PARTS
+var _Http_pair = F2(function(a, b) { return { $: 0, a: a, b: b }; });
 
 function _Http_toFormData(parts)
 {
