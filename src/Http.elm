@@ -61,19 +61,19 @@ import Task exposing (Task)
     import Http
 
     type Msg
-      = GotBook (Result Http.Error String)
+      = GotText (Result Http.Error String)
 
-    getWarAndPeace : Cmd Msg
-    getWarAndPeace =
+    getPublicOpinion : Cmd Msg
+    getPublicOpinion =
       Http.get
-        { url = "https://example.com/books/war-and-peace"
-        , expect = Http.expectString GotBook
+        { url = "https://elm-lang.org/assets/public-opinion.txt"
+        , expect = Http.expectString GotText
         }
 
 You can use functions like [`expectString`](#expectString) and
 [`expectJson`](#expectJson) to interpret the response in different ways. In
 this example, we are expecting the response body to be a `String` containing
-the text of “War and Peace” by Leo Tolstoy.
+the full text of _Public Opinion_ by Walter Lippmann.
 
 **Note:** Use [`elm/url`](/packages/elm/url/latest) to build reliable URLs.
 -}
@@ -742,6 +742,10 @@ riskyRequest r =
 -- TASKS
 
 
+{-| Just like [`request`](#request), but it creates a `Task`. This makes it
+possible to pair your HTTP request with `Time.now` if you need timestamps for
+some reason. **This should be quite rare.**
+-}
 task
   : { method : String
     , headers : List Header
@@ -764,19 +768,31 @@ task r =
     }
 
 
+{-| Describes how to resolve an HTTP task. You can create a resolver with
+[`stringResolver`](#stringResolver) and [`bytesResolver`](#bytesResolver).
+-}
 type Resolver x a = Resolver
 
 
+{-| Turn a response with a `String` body into a result.
+Similar to [`expectStringResponse`](#expectStringResponse).
+-}
 stringResolver : (Response String -> Result x a) -> Resolver x a
 stringResolver =
   Elm.Kernel.Http.expect "" identity
 
 
+{-| Turn a response with a `Bytes` body into a result.
+Similar to [`expectBytesResponse`](#expectBytesResponse).
+-}
 bytesResolver : (Response Bytes -> Result x a) -> Resolver x a
 bytesResolver =
   Elm.Kernel.Http.expect "arraybuffer" Elm.Kernel.Http.toDataView
 
 
+{-| Just like [`riskyRequest`](#riskyRequest), but it creates a `Task`. **Use
+with caution!** This has all the same security concerns as `riskyRequest`.
+-}
 riskyTask
   : { method : String
     , headers : List Header
