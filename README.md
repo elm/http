@@ -1,57 +1,36 @@
-# HTTP in Elm
+# HTTP
 
-Make HTTP requests in Elm.
+Make HTTP requests in Elm. Talk to servers.
 
-```elm
-import Http
-import Json.Decode as Decode
-
-
--- GET A STRING
-
-getWarAndPeace : Http.Request String
-getWarAndPeace =
-  Http.getString "https://example.com/books/war-and-peace"
-
-
--- GET JSON
-
-getMetadata : Http.Request Metadata
-getMetadata =
-  Http.get "https://example.com/books/war-and-peace/metadata" decodeMetadata
-
-type alias Metadata =
-  { author : String
-  , pages : Int
-  }
-
-decodeMetadata : Decode.Decoder Metadata
-decodeMetadata =
-  Decode.map2 Metadata
-    (Decode.field "author" Decode.string)
-    (Decode.field "pages" Decode.int)
-
-
--- SEND REQUESTS
-
-type Msg
-  = LoadMetadata (Result Http.Error Metadata)
-
-send : Cmd Msg
-send =
-  Http.send LoadMetadata getMetadata
-```
+**I very highly recommend reading through [The Official Guide](https://guide.elm-lang.org) to understand how to use this package!**
 
 
 ## Examples
 
-  - GET requests - [demo and code](http://elm-lang.org/examples/http)
-  - Download progress - [demo](https://hirafuji.com.br/elm/http-progress-example/) and [code](https://gist.github.com/pablohirafuji/fa373d07c42016756d5bca28962008c4)
+Here are some commands you might create to send HTTP requests with this package:
 
+```elm
+import Http
+import Json.Decode as D
 
-## Learn More
+type Msg
+  = GotBook (Result Http.Error String)
+  | GotItems (Result Http.Error (List String))
 
-To understand how HTTP works in Elm, check out:
+getBook : Cmd Msg
+getBook =
+  Http.get
+    { url = "https://elm-lang.org/assets/public-opinion.txt"
+    , expect = Http.expectString GotBook
+    }
 
-  - [The HTTP example in the guide](https://guide.elm-lang.org/architecture/effects/http.html) to see a simple usage with some explanation.
-  - [The Elm Architecture](https://guide.elm-lang.org/architecture/) to understand how HTTP fits into Elm in a more complete way. This will explain concepts like `Cmd` and `Sub` that appear in this package.
+fetchItems : Cmd Msg
+fetchItems =
+  Http.post
+    { url = "https://example.com/items.json"
+    , body = Http.emptyBody
+    , expect = Http.expectJson GotItems (D.list (D.field "name" D.string))
+    }
+```
+
+But again, to really understand what is going on here, **read through [The Official Guide](https://guide.elm-lang.org).** It has sections describing how HTTP works and how to use it with JSON data. Reading through will take less time overall than trying to figure everything out by trial and error!
