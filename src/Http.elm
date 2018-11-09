@@ -756,7 +756,7 @@ task
     }
   -> Task x a
 task r =
-  Elm.Kernel.Http.toTask resultToTask
+  Elm.Kernel.Http.toTask () resultToTask
     { method = r.method
     , headers = r.headers
     , url = r.url
@@ -803,7 +803,7 @@ riskyTask
     }
   -> Task x a
 riskyTask r =
-  Elm.Kernel.Http.toTask resultToTask
+  Elm.Kernel.Http.toTask () resultToTask
     { method = r.method
     , headers = r.headers
     , url = r.url
@@ -890,7 +890,7 @@ onEffects router cmds subs _ =
 
 spawn : MyRouter msg -> MyCmd msg -> Task x Process.Id
 spawn router (MyCmd req) =
-  Process.spawn (Elm.Kernel.Http.toTask (Platform.sendToApp router) req)
+  Process.spawn (Elm.Kernel.Http.toTask router (Platform.sendToApp router) req)
 
 
 
