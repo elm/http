@@ -5,6 +5,7 @@ effect module Http where { command = MyCmd, subscription = MySub } exposing
   , multipartBody, Part, stringPart, filePart, bytesPart
   , Expect, expectString, expectJson, expectBytes, expectWhatever, Error(..)
   , track, Progress(..), fractionSent, fractionReceived
+  , cancel
   , riskyRequest
   , expectStringResponse, expectBytesResponse, Response(..), Metadata
   , task, Resolver, stringResolver, bytesResolver, riskyTask
@@ -29,6 +30,9 @@ effect module Http where { command = MyCmd, subscription = MySub } exposing
 
 # Progress
 @docs track, Progress, fractionSent, fractionReceived
+
+# Cancel
+@docs cancel
 
 # Risky Requests
 @docs riskyRequest
@@ -159,7 +163,7 @@ post r =
 
 It lets you set custom `headers` as needed. The `timeout` is the number of
 milliseconds you are willing to wait before giving up. The `tracker` lets you
-track the request with a [`track`](#track) subscription.
+[`cancel`](#cancel) and [`track`](#track) requests.
 -}
 request
   : { method : String
@@ -172,7 +176,7 @@ request
     }
   -> Cmd msg
 request r =
-  command <| MyCmd <|
+  command <| Request <|
     { method = r.method
     , headers = r.headers
     , url = r.url
@@ -574,6 +578,17 @@ type alias Metadata =
 
 
 
+-- CANCEL
+
+
+{-| Try to cancel an ongoing request based on a `tracker`.
+-}
+cancel : String -> Cmd msg
+cancel tracker =
+  command (Cancel tracker)
+
+
+
 -- PROGRESS
 
 
@@ -726,7 +741,7 @@ riskyRequest
     }
   -> Cmd msg
 riskyRequest r =
-  command <| MyCmd <|
+  command <| Request <|
     { method = r.method
     , headers = r.headers
     , url = r.url
@@ -826,31 +841,37 @@ resultToTask result =
 -- COMMANDS and SUBSCRIPTIONS
 
 
-type MyCmd msg =
-  MyCmd
-    { method : String
-    , headers : List Header
-    , url : String
-    , body : Body
-    , expect : Expect msg
-    , timeout : Maybe Float
-    , tracker : Maybe String
-    , allowCookiesFromOtherDomains : Bool
-    }
+type MyCmd msg
+  = Cancel String
+  | Request
+      { method : String
+      , headers : List Header
+      , url : String
+      , body : Body
+      , expect : Expect msg
+      , timeout : Maybe Float
+      , tracker : Maybe String
+      , allowCookiesFromOtherDomains : Bool
+      }
 
 
 cmdMap : (a -> b) -> MyCmd a -> MyCmd b
-cmdMap func (MyCmd r) =
-  MyCmd
-    { method = r.method
-    , headers = r.headers
-    , url = r.url
-    , body = r.body
-    , expect = Elm.Kernel.Http.mapExpect func r.expect
-    , timeout = r.timeout
-    , tracker = r.tracker
-    , allowCookiesFromOtherDomains = r.allowCookiesFromOtherDomains
-    }
+cmdMap func cmd =
+  case cmd of
+    Cancel tracker ->
+      Cancel tracker
+
+    Request r ->
+      Request
+        { method = r.method
+        , headers = r.headers
+        , url = r.url
+        , body = r.body
+        , expect = Elm.Kernel.Http.mapExpect func r.expect
+        , timeout = r.timeout
+        , tracker = r.tracker
+        , allowCookiesFromOtherDomains = r.allowCookiesFromOtherDomains
+        }
 
 
 type MySub msg =
@@ -867,30 +888,57 @@ subMap func (MySub tracker toMsg) =
 
 
 type alias State msg =
-  List (MySub msg)
+  { reqs : Dict String Process.Id
+  , subs : List (MySub msg)
+  }
 
 
 init : Task Never (State msg)
 init =
-  Task.succeed []
+  Task.succeed (State Dict.empty [])
 
 
 type alias MyRouter msg =
   Platform.Router msg SelfMsg
 
 
+
 -- APP MESSAGES
 
 
 onEffects : MyRouter msg -> List (MyCmd msg) -> List (MySub msg) -> State msg -> Task Never (State msg)
-onEffects router cmds subs _ =
-  Task.sequence (List.map (spawn router) cmds)
-    |> Task.andThen (\_ -> Task.succeed subs)
+onEffects router cmds subs state =
+  updateReqs router cmds state.reqs
+    |> Task.andThen (\reqs -> Task.succeed (State reqs subs))
 
 
-spawn : MyRouter msg -> MyCmd msg -> Task x Process.Id
-spawn router (MyCmd req) =
-  Process.spawn (Elm.Kernel.Http.toTask router (Platform.sendToApp router) req)
+updateReqs : MyRouter msg -> List (MyCmd msg) -> Dict String Process.Id -> Task x (Dict String Process.Id)
+updateReqs router cmds reqs =
+  case cmds of
+    [] ->
+      Task.succeed reqs
+
+    cmd :: otherCmds ->
+      case cmd of
+        Cancel tracker ->
+          case Dict.get tracker reqs of
+            Nothing ->
+              updateReqs router otherCmds reqs
+
+            Just pid ->
+              Process.kill pid
+                |> Task.andThen (\_ -> updateReqs router otherCmds (Dict.remove tracker reqs))
+
+        Request req ->
+          Process.spawn (Elm.Kernel.Http.toTask router (Platform.sendToApp router) req)
+            |> Task.andThen (\pid ->
+                  case req.tracker of
+                    Nothing ->
+                      updateReqs router otherCmds reqs
+
+                    Just tracker ->
+                      updateReqs router otherCmds (Dict.insert tracker pid reqs)
+              )
 
 
 
@@ -903,7 +951,7 @@ type alias SelfMsg =
 
 onSelfMsg : MyRouter msg -> SelfMsg -> State msg -> Task Never (State msg)
 onSelfMsg router (tracker, progress) state =
-  Task.sequence (List.filterMap (maybeSend router tracker progress) state)
+  Task.sequence (List.filterMap (maybeSend router tracker progress) state.subs)
     |> Task.andThen (\_ -> Task.succeed state)
 
 

@@ -38,7 +38,7 @@ var _Http_toTask = F3(function(router, toTask, request)
 		request.__$body.a && xhr.setRequestHeader('Content-Type', request.__$body.a);
 		xhr.send(request.__$body.b);
 
-		return function() { xhr.abort(); };
+		return function() { xhr.__isAborted = true; xhr.abort(); };
 	});
 });
 
@@ -170,12 +170,14 @@ function _Http_track(router, xhr, tracker)
 	// TODO check out lengthComputable on loadstart event
 
 	xhr.upload.addEventListener('progress', function(event) {
+		if (xhr.__isAborted) { return; }
 		__Scheduler_rawSpawn(A2(__Platform_sendToSelf, router, __Utils_Tuple2(tracker, __Http_Sending({
 			__$sent: event.loaded,
 			__$size: event.total
 		}))));
 	});
 	xhr.addEventListener('progress', function(event) {
+		if (xhr.__isAborted) { return; }
 		__Scheduler_rawSpawn(A2(__Platform_sendToSelf, router, __Utils_Tuple2(tracker, __Http_Receiving({
 			__$received: event.loaded,
 			__$size: event.lengthComputable ? __Maybe_Just(event.total) : __Maybe_Nothing
