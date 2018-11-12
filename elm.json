@@ -3,7 +3,7 @@
     "name": "elm/http",
     "summary": "Make HTTP requests",
     "license": "BSD-3-Clause",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "exposed-modules": [
         "Http"
     ],
