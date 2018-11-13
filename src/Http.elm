@@ -203,13 +203,6 @@ type Header = Header String String
     header "If-Modified-Since" "Sat 29 Oct 1994 19:43:31 GMT"
     header "Max-Forwards" "10"
     header "X-Requested-With" "XMLHttpRequest"
-
-**Note:** In the future, we may split this out into an `Http.Headers` module
-and provide helpers for cases that are common on the client-side. If this
-sounds nice to you, open an issue [here][] describing the helper you want and
-why you need it.
-
-[here]: https://github.com/elm/http/issues
 -}
 header : String -> String -> Header
 header =
@@ -403,22 +396,58 @@ bytesPart key mime bytes =
 type Expect msg = Expect
 
 
-{-| Expect the response body to be a `String`.
+{-| Expect the response body to be a `String`. Like when getting the full text
+of a book:
+
+    import Http
+
+    type Msg
+      = GotText (Result Http.Error String)
+
+    getPublicOpinion : Cmd Msg
+    getPublicOpinion =
+      Http.get
+        { url = "https://elm-lang.org/assets/public-opinion.txt"
+        , expect = Http.expectString GotText
+        }
+
+The response body is always some sequence of bytes, but in this case, we
+expect it to be UTF-8 encoded text that can be turned into a `String`.
 -}
 expectString : (Result Error String -> msg) -> Expect msg
 expectString toMsg =
   expectStringResponse toMsg (resolve Ok)
 
 
-{-| Expect the response body to be JSON.
+{-| Expect the response body to be JSON. Like if you want to get a random cat
+GIF you might say:
 
-The official guide has a section on JSON [here][]. It will teach you how to
-use [`elm/json`][json] to turn a JSON body into an Elm value.
+    import Http
+    import Json.Decode exposing (Decoder, field, string)
+
+    type Msg
+      = GotGif (Result Http.Error String)
+
+    getRandomCatGif : Cmd Msg
+    getRandomCatGif =
+      Http.get
+        { url = "https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=cat"
+        , expect = Http.expectJson GotGif gifDecoder
+        }
+
+    gifDecoder : Decoder String
+    gifDecoder =
+      field "data" (field "image_url" string)
+
+The official guide goes through this particular example [here][]. That page
+also introduces [`elm/json`][json] to help you get started turning JSON into
+Elm values in other situations.
 
 [here]: https://guide.elm-lang.org/interop/json.html
 [json]: /packages/elm/json/latest/
 
-If the JSON decoder fails, you get a `BadBody` error.
+If the JSON decoder fails, you get a `BadBody` error that tries to explain
+what went wrong.
 -}
 expectJson : (Result Error a -> msg) -> Decode.Decoder a -> Expect msg
 expectJson toMsg decoder =
@@ -427,12 +456,30 @@ expectJson toMsg decoder =
       Result.mapError Decode.errorToString (Decode.decodeString decoder string)
 
 
-{-| Expect the response body to be binary data.
+{-| Expect the response body to be binary data. For example, maybe you are
+talking to an endpoint that gives back ProtoBuf data:
 
-Use [`elm/bytes`](/packages/elm/bytes/latest/) to decode the binary data into
-Elm values.
+    import Bytes.Decode as Bytes
+    import Http
 
-If the decoder fails, you get a `BadBody` error.
+    type Msg
+      = GotData (Result Http.Error Data)
+
+    getData : Cmd Msg
+    getData =
+      Http.get
+        { url = "/data"
+        , expect = Http.expectBytes GotData dataDecoder
+        }
+
+    -- dataDecoder : Bytes.Decoder Data
+
+You would use [`elm/bytes`](/packages/elm/bytes/latest/) to decode the binary
+data according to a proto definition file like `example.proto`.
+
+If the decoder fails, you get a `BadBody` error that just indicates that
+_something_ went wrong. It probably makes sense to debug by peeking at the
+bytes you are getting in the browser developer tools or something.
 -}
 expectBytes : (Result Error a -> msg) -> Bytes.Decoder a -> Expect msg
 expectBytes toMsg decoder =
@@ -442,6 +489,22 @@ expectBytes toMsg decoder =
 
 
 {-| Expect the response body to be whatever. It does not matter. Ignore it!
+For example, you might want this when uploading files:
+
+    import Http
+
+    type Msg
+      = Uploaded (Result Http.Error ())
+
+    upload : File -> Cmd Msg
+    upload file =
+      Http.post
+        { url = "/upload"
+        , body = Http.fileBody file
+        , expect = Http.expectWhatever Uploaded
+        }
+
+The server may be giving back a response body, but we do not care about it.
 -}
 expectWhatever : (Result Error () -> msg) -> Expect msg
 expectWhatever toMsg =
