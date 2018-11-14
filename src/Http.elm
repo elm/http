@@ -605,8 +605,8 @@ expectBytesResponse toMsg toResult =
 - `BadUrl_` means you did not provide a valid URL.
 - `Timeout_` means it took too long to get a response.
 - `NetworkError_` means the user turned off their wifi, went in a cave, etc.
-- `BadResponse_` means you got a response back, but the status code indicates failure.
-- `GoodResponse_` means you got a response back with a nice status code!
+- `BadStatus_` means you got a response back, but the status code indicates failure.
+- `GoodStatus_` means you got a response back with a nice status code!
 
 The type of the `body` depends on whether you use
 [`expectStringResponse`](#expectStringResponse)
