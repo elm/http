@@ -602,11 +602,11 @@ expectBytesResponse toMsg toResult =
 
 {-| A `Response` can come back a couple different ways:
 
-- `BadUrl_` means you did not provide a valid URL.
-- `Timeout_` means it took too long to get a response.
-- `NetworkError_` means the user turned off their wifi, went in a cave, etc.
-- `BadStatus_` means you got a response back, but the status code indicates failure.
-- `GoodStatus_` means you got a response back with a nice status code!
+- `BadUrl_` &mdash; you did not provide a valid URL.
+- `Timeout_` &mdash; it took too long to get a response.
+- `NetworkError_` &mdash; the user turned off their wifi, went in a cave, etc.
+- `BadStatus_` &mdash; a response arrived, but the status code indicates failure.
+- `GoodStatus_` &mdash; a response arrived with a nice status code!
 
 The type of the `body` depends on whether you use
 [`expectStringResponse`](#expectStringResponse)
