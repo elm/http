@@ -576,7 +576,7 @@ your own [`expectJson`](#expectJson) like this:
                   Ok value
 
                 Err err ->
-                  BadBody (D.errorToString err)
+                  Err (Http.BadBody (D.errorToString err))
 
 This function is great for fancier error handling and getting response headers.
 For example, maybe when your sever gives a 404 status code (not found) it also
