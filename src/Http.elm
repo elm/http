@@ -772,7 +772,7 @@ This is called [`withCredentials`][wc] in JavaScript, and it allows a couple
 other risky things as well. It can be useful if `www.example.com` needs to
 talk to `uploads.example.com`, but it should be used very carefully!
 
-For example, every HTTP request includes a `Host` header revealing the domain,
+For example, every HTTP request includes a `Origin` header revealing the domain,
 so any request to `facebook.com` reveals the website that sent it. From there,
 cookies can be used to correlate browsing habits with specific users. “Oh, it
 looks like they visited `example.com`. Maybe they want ads about examples!”
