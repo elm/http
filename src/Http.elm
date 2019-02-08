@@ -599,6 +599,18 @@ expectBytesResponse : (Result x a -> msg) -> (Response Bytes -> Result x a) -> E
 expectBytesResponse toMsg toResult =
   Elm.Kernel.Http.expect "arraybuffer" Elm.Kernel.Http.toDataView (toResult >> toMsg)
 
+{-| Expect a [`Response`](#Response) with a `Blob` body.
+
+It works just like [`expectBytesResponse`](#expectBytesResponse), except this tells the request to decode to blob.
+
+The difference between expectBlobResponse and expectBytesResponse is that this sets the xhr.responseType = "blob"
+which won't break in IE.
+
+-}
+expectBlobResponse : (Result x a -> msg) -> (Http.Response Bytes -> Result x a) -> Http.Expect msg
+expectBlobResponse toMsg toResult =
+  Elm.Kernel.Http.expect "blob" identity (toResult >> toMsg)
+
 
 {-| A `Response` can come back a couple different ways:
 
