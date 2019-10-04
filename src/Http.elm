@@ -227,11 +227,11 @@ emptyBody =
 
 
 {-| Put some JSON value in the body of your `Request`. This will automatically
-add the `Content-Type: application/json` header.
+add the `Content-Type: application/json;charset=utf-8` header.
 -}
 jsonBody : Encode.Value -> Body
 jsonBody value =
-  Elm.Kernel.Http.pair "application/json" (Encode.encode 0 value)
+  Elm.Kernel.Http.pair "application/json;charset=utf-8" (Encode.encode 0 value)
 
 
 {-| Put some string in the body of your `Request`. Defining `jsonBody` looks
