@@ -226,8 +226,28 @@ emptyBody =
   Elm.Kernel.Http.emptyBody
 
 
-{-| Put some JSON value in the body of your `Request`. This will automatically
-add the `Content-Type: application/json` header.
+{-| Put some JSON value in the body of your `Request`.
+
+Maybe you want to search for 10 books relevant to a certain topic:
+
+    import Http
+    import Json.Encode as E
+
+    searchForBooks : String -> Cmd Msg
+    searchForBooks topic =
+      Http.post
+        { url = "https://api.example.com/books"
+        , body =
+            Http.jsonBody <|
+              E.object
+                [ ( "topic", E.string topic )
+                , ( "limit", E.int 10 )
+                ]
+        , expect =
+            Http.expectJson GotBooks booksDecoder
+        }
+
+**Note:** This will automatically add the `Content-Type: application/json` header.
 -}
 jsonBody : Encode.Value -> Body
 jsonBody value =
