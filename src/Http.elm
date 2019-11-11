@@ -599,7 +599,7 @@ your own [`expectJson`](#expectJson) like this:
                   Err (Http.BadBody (D.errorToString err))
 
 This function is great for fancier error handling and getting response headers.
-For example, maybe when your sever gives a 404 status code (not found) it also
+For example, maybe when your server gives a 404 status code (not found) it also
 provides a helpful JSON message in the response body. This function lets you
 add logic to the `BadStatus_` branch so you can parse that JSON and give users
 a more helpful message! Or make your own custom error type for your particular
