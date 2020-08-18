@@ -3,7 +3,7 @@ effect module Http where { command = MyCmd, subscription = MySub } exposing
   , Header, header
   , Body, emptyBody, stringBody, jsonBody, fileBody, bytesBody
   , multipartBody, Part, stringPart, filePart, bytesPart
-  , Expect, expectString, expectJson, expectBytes, expectWhatever, Error(..)
+  , Expect, expectString, expectJson, expectBytes, expectWhatever, mapExpect, Error(..)
   , track, Progress(..), fractionSent, fractionReceived
   , cancel
   , riskyRequest
@@ -26,7 +26,7 @@ effect module Http where { command = MyCmd, subscription = MySub } exposing
 @docs multipartBody, Part, stringPart, filePart, bytesPart
 
 # Expect
-@docs Expect, expectString, expectJson, expectBytes, expectWhatever, Error
+@docs Expect, expectString, expectJson, expectBytes, expectWhatever, mapExpect, Error
 
 # Progress
 @docs track, Progress, fractionSent, fractionReceived
@@ -541,6 +541,19 @@ resolve toResult response =
     GoodStatus_ _ body -> Result.mapError BadBody (toResult body)
 
 
+{-| Transform the messages produced by an expect.
+Very similar to [`Html.map`](/packages/elm/html/latest/Html#map).
+
+This is very rarely useful in well-structured Elm code, so definitely read the
+section on [structure] in the guide before reaching for this!
+
+[structure]: https://guide.elm-lang.org/webapps/structure.html
+-}
+mapExpect : (a -> msg) -> Expect a -> Expect msg
+mapExpect =
+    Elm.Kernel.Http.mapExpect
+
+
 {-| A `Request` can fail in a couple ways:
 
 - `BadUrl` means you did not provide a valid URL.
@@ -950,7 +963,7 @@ cmdMap func cmd =
         , headers = r.headers
         , url = r.url
         , body = r.body
-        , expect = Elm.Kernel.Http.mapExpect func r.expect
+        , expect = mapExpect func r.expect
         , timeout = r.timeout
         , tracker = r.tracker
         , allowCookiesFromOtherDomains = r.allowCookiesFromOtherDomains
