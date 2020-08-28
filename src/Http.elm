@@ -545,7 +545,7 @@ resolve toResult response =
 
 - `BadUrl` means you did not provide a valid URL.
 - `Timeout` means it took too long to get a response.
-- `NetworkError` means the user turned off their wifi, went in a cave, etc.
+- `NetworkError` means the that server cannot be reached (no internet, cannot establist connection with server, CORS problem).
 - `BadStatus` means you got a response back, but the status code indicates failure.
 - `BadBody` means you got a response back with a nice status code, but the body
 of the response was something unexpected. The `String` in this case is a
