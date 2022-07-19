@@ -547,6 +547,7 @@ resolve toResult response =
 - `Timeout` means it took too long to get a response.
 - `NetworkError` means the user turned off their wifi, went in a cave, etc.
 - `BadStatus` means you got a response back, but the status code indicates failure.
+Failure in this case means a status code bigger then 200 and smaller then 300.
 - `BadBody` means you got a response back with a nice status code, but the body
 of the response was something unexpected. The `String` in this case is a
 debugging message that explains what went wrong with your JSON decoder or
