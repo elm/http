@@ -545,7 +545,7 @@ resolve toResult response =
 
 - `BadUrl` means you did not provide a valid URL.
 - `Timeout` means it took too long to get a response.
-- `NetworkError` means the user turned off their wifi, went in a cave, etc.
+- `NetworkError` means the user turned off their wifi, went into a cave, etc.
 - `BadStatus` means you got a response back, but the status code indicates failure.
 - `BadBody` means you got a response back with a nice status code, but the body
 of the response was something unexpected. The `String` in this case is a
@@ -624,7 +624,7 @@ expectBytesResponse toMsg toResult =
 
 - `BadUrl_` &mdash; you did not provide a valid URL.
 - `Timeout_` &mdash; it took too long to get a response.
-- `NetworkError_` &mdash; the user turned off their wifi, went in a cave, etc.
+- `NetworkError_` &mdash; the user turned off their wifi, went into a cave, etc.
 - `BadStatus_` &mdash; a response arrived, but the status code indicates failure.
 - `GoodStatus_` &mdash; a response arrived with a nice status code!
 
